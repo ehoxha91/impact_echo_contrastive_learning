@@ -3,27 +3,27 @@ import sys
 from augmentations import *
 import torch
 
-home_path="/home/ehoxha/projects2023"
-sys.path.insert(1, f'{home_path}/impact_echo_cl/impact_echo_cl/dataloaders')
+home_path="/Users/evhoxha/projects/impact_echo_contrastive_learning"
+sys.path.insert(1, f'{home_path}/dataloaders')
 
 # X = np.load('data/data1024/xtrain.npy')
 # X = np.load()
 # X = X[:, 0:1024]
 
-X_path = ['data/data1519/xtrain.npy','data/sdnet_dataset.npy']
-X = np.array([])
-items = 0
-for path in X_path:
-    tmp = np.load(path)
-    tmp = tmp[:, 0:1519]
-    items += tmp.shape[0]
-    X = np.append(X, tmp)
+# X_path = ['data/data1519/xtrain.npy','data/sdnet_dataset.npy']
+# X = np.array([])
+# items = 0
+# for path in X_path:
+#     tmp = np.load(path)
+#     tmp = tmp[:, 0:1519]
+#     items += tmp.shape[0]
+#     X = np.append(X, tmp)
 
-X = np.reshape(X, (items, -1))
-print(f"Dataset Shape: {X.shape}")
+# X = np.reshape(X, (items, -1))
+# print(f"Dataset Shape: {X.shape}")
 import matplotlib.pyplot as plt
 
-torch_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch_device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print(f"Device: {torch_device}")
 
 # x_augmentations = augmet_LowPassFilter(X[0], 200000) # not useful
@@ -47,14 +47,14 @@ print(f"Device: {torch_device}")
 def normalize_data__(signal):
     return (signal - np.min(signal))/(np.max(signal)-np.min(signal))
 
-X_test = np.load(f'{home_path}/impact_echo_cl/data/upsampled/X_our_slab_size860.npy')
+X_test = np.load('data/data2/X_train_860.npy')
 print(X_test.shape)
 X_path = []
 X_temp = np.array([])
 for sig in X_test:
     sig = normalize_data__(sig)
     X_temp = np.append(X_temp, sig)
-X_test = np.reshape(X_temp, (1824, 860))
+X_test = np.reshape(X_temp, (1752, 860))
 
 from audiomentations import Compose, AddGaussianNoise, TimeStretch, Shift, AddGaussianSNR, \
                             PitchShift, Gain, PolarityInversion, AddShortNoises, \

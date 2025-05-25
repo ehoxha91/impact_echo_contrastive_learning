@@ -28,7 +28,7 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 logger.info(f"Using device: {device}")
  
 # set plot_defect_map to false to stop plotting the defect map while traning
@@ -295,7 +295,7 @@ elif args[1] == 'self_supervised_contrastive_learning':
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
 
     model.eval()
-    torch.backends.cudnn.enabled = False
+    # torch.backends.cudnn.enabled = False  # Not needed for MPS
     def train_classifier():
         total_loss = 0
         classifier.train()

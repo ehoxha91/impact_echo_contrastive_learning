@@ -27,9 +27,12 @@ class SupConLoss(nn.Module):
 		Returns:
 		A loss scalar.
 		"""
-		device = (torch.device('cuda')
-			if features.is_cuda
-			else torch.device('cpu'))
+		if features.is_cuda:
+			device = torch.device('cuda')
+		elif hasattr(features, 'is_mps') and features.is_mps:
+			device = torch.device('mps')
+		else:
+			device = torch.device('cpu')
 
 		if len(features.shape) < 3:
 			raise ValueError('`features` needs to be [bsz, n_views, ...], at least 3 dimensions are required')

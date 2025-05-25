@@ -25,7 +25,7 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 X_ds1, y_ds1 = load_ds1_test_data_into_torch_tensor(device=device)
 
@@ -43,7 +43,7 @@ if args[1] == 'supervised_contrastive_learning':
     logger.info(f"Using supervised trained model: {model_name}")
     model = EchoNet(verbose=False).to(device)
     
-    model.load_state_dict(torch.load(f'weights/{model_name}.pth'))
+    model.load_state_dict(torch.load(f'weights/{model_name}.pth', map_location=device))
     logger.info('Trained model loaded')
 
     model.eval()
@@ -51,7 +51,7 @@ if args[1] == 'supervised_contrastive_learning':
 
     # load classifier model
     classifier = Classifier().to(device)
-    classifier.load_state_dict(torch.load(f'weights/{model_name}_classifier.pth'))
+    classifier.load_state_dict(torch.load(f'weights/{model_name}_classifier.pth', map_location=device))
     logger.info('Trained classifier loaded')
     classifier.eval()
     logger.info('Classifier on evaluation mode')
@@ -86,7 +86,7 @@ elif args[1] == 'self_supervised_contrastive_learning':
     logger.info(f"Using supervised trained model: {model_name}")
     model = EchoNet(verbose=False).to(device)
     
-    model.load_state_dict(torch.load(f'weights/{model_name}.pth'))
+    model.load_state_dict(torch.load(f'weights/{model_name}.pth', map_location=device))
     logger.info('Trained model loaded')
 
     model.eval()
@@ -94,7 +94,7 @@ elif args[1] == 'self_supervised_contrastive_learning':
 
     # load classifier model
     classifier = Classifier().to(device)
-    classifier.load_state_dict(torch.load(f'weights/{model_name}_classifier.pth'))
+    classifier.load_state_dict(torch.load(f'weights/{model_name}_classifier.pth', map_location=device))
     logger.info('Trained classifier loaded')
     classifier.eval()
     logger.info('Classifier on evaluation mode')

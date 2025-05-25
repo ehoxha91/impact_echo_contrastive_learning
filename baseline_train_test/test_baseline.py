@@ -8,9 +8,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import sys
-sys.path.insert(0, '../')
-sys.path.insert(0, '../dataloaders')
-sys.path.insert(0, '../models')
+sys.path.insert(0, '/Users/evhoxha/projects/impact_echo_contrastive_learning/')
+sys.path.insert(0, 'dataloaders/')
+sys.path.insert(0, 'models/')
+sys.path.insert(0, 'data/')
+
 
 from utils import *
 
@@ -22,23 +24,23 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 X_ds1, y_ds1 = load_ds1_test_data_into_torch_tensor(
     device=device, 
-    X_path='../data/X_test_860.npy', 
-    y_path='../data/y_test.npy'
+    X_path='data/X_test_860.npy', 
+    y_path='data/y_test.npy'
 )
 X_may, X_june = load_ccny_sep2022_data_into_torch_tensor(
     device=device,
-    X_path='../data/X_our_slab_size860.npy'
+    X_path='data/X_our_slab_size860.npy'
 )
 # X_overlay, y_overlay = load_ds3_overlay_test_data_into_torch_tensor(device=device)
 
 # No GT labels
 X_nov23 = load_ccny_nov2023_data_into_torch_tensor2(
     device=device,
-    X_path='../data/nov2023_non_resampled.npy'
+    X_path='data/nov2023_non_resampled.npy'
 )
 
 model_name = 'baseline_model'
@@ -48,7 +50,7 @@ logger.info(f"Using device: {device}")
 logger.info(f"Using unsupervised trained model: {model_name}")
 
 classifier = IENet(verbose=False).to(device)
-classifier.load_state_dict(torch.load(f'../weights/{model_name}.pth')) 
+classifier.load_state_dict(torch.load(f'weights/{model_name}.pth', map_location=device)) 
 classifier.eval()
 
 out1, _ = classifier(X_ds1)
