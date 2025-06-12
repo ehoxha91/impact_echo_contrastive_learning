@@ -165,10 +165,10 @@ class UncertaintyLoss(nn.Module):
     2. KL divergence regularization for uncertainty head
     """
     
-    def __init__(self, beta=0.01):
+    def __init__(self, beta=0.01, class_weights=None):
         super(UncertaintyLoss, self).__init__()
         self.beta = beta  # Weight for uncertainty regularization
-        self.ce_loss = nn.CrossEntropyLoss()
+        self.ce_loss = nn.CrossEntropyLoss(weight=class_weights)
         
     def forward(self, mean_logits, log_var, targets):
         # Extract logits from sequence - handle the LSTM output format
@@ -257,7 +257,7 @@ if __name__ == '__main__':
     y_path = ['data/y_train.npy']
 
     epochs = 100
-    model_name = 'uncertainty_model'
+    model_name = 'uncertainty_model_class_weight'
     batch_size = 32
     dropout_rate = 0.2  # Reduce dropout to help learning
     learning_rate = 0.001  # Increase learning rate
@@ -268,12 +268,23 @@ if __name__ == '__main__':
 
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     print(f"Using device: {device}")
+    
+    # Calculate class weights for imbalanced data
+    import numpy as np
+    y_data = np.load(y_path[0])
+    y_data[y_data < 1] = 0
+    y_data[y_data > 0] = 1
+    class_counts = np.bincount(y_data.astype(int))
+    total_samples = len(y_data)
+    class_weights = torch.FloatTensor([total_samples / (2 * count) for count in class_counts]).to(device)
+    print(f"Class distribution: {class_counts}")
+    print(f"Class weights: {class_weights}")
 
     # Initialize uncertainty model
     model = UncertaintyIENet(dropout_rate=dropout_rate, verbose=False).to(device)
 
-    # Initialize uncertainty loss
-    uncertainty_loss = UncertaintyLoss(beta=0.1)  # Increase uncertainty learning weight
+    # Initialize uncertainty loss with class weighting
+    uncertainty_loss = UncertaintyLoss(beta=0.1, class_weights=class_weights)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)

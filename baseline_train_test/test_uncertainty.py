@@ -258,7 +258,7 @@ if __name__ == '__main__':
         X_path='data/nov2023_non_resampled.npy'
     )
     
-    model_name = 'uncertainty_model'
+    model_name = 'uncertainty_model_class_weight'
     mc_samples = 50  # Number of MC samples for uncertainty estimation
     
     logger.info(f"Using device: {device}")
