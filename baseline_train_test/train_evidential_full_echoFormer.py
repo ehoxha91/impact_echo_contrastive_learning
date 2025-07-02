@@ -30,6 +30,17 @@ from models.model_parts import ResidualBlock
 from torch_geometric.nn import MLP
 
 
+class PositionalEncoding(nn.Module):
+    """Learnable positional encoding for wave signals"""
+    def __init__(self, d_model, max_len=256):
+        super().__init__()
+        self.pe = nn.Parameter(torch.randn(1, d_model, max_len) * 0.02)
+        
+    def forward(self, x):
+        # x shape: (batch, channels, seq_len)
+        return x + self.pe[:, :, :x.size(2)]
+
+
 class FullEvidentialIENet(nn.Module):
     """
     Full Evidential IENet with complete Dirichlet-based loss including KL regularization
@@ -46,9 +57,24 @@ class FullEvidentialIENet(nn.Module):
         self.residual_4 = ResidualBlock(16, 32, 25)
         self.residual_5 = ResidualBlock(32, 64, 13)
         self.residual_6 = ResidualBlock(64, 64, 7)
-        encoder_layer = nn.TransformerEncoderLayer(d_model=64, nhead=32, dim_feedforward=512, dropout=0.1)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=3)
+
+        self.pos_encoding = PositionalEncoding(64)
+
+        # Fixed: 8 heads × 8 dims = 64 total dims
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=64, 
+            nhead=8,  # 64/8 = 8 dims per head
+            dim_feedforward=512,
+            dropout=0.1,
+            activation='gelu',
+            batch_first=True  # More intuitive
+        )
+        # Fixed: Consistent naming with forward method
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)
+        
+        # Keep original size - actual flattened tensor is 832 features
         self.projection_layer = MLP([832, 128, 64], norm=None)
+        
         # Evidence output layer
         self.evidence_layer = nn.Linear(in_features=64, out_features=num_classes)
 
@@ -60,11 +86,13 @@ class FullEvidentialIENet(nn.Module):
         x = self.residual_4(x)
         x = self.residual_5(x)
         x = self.residual_6(x)
+        x = self.pos_encoding(x)
         
-        x = x.permute(2, 0, 1)  # Transformer expects (seq_len, batch_size, feature_dim)
-        x = self.transformer_encoder(x)
-        x = x.permute(1, 0, 2)  # Revert the permutation
-        x = x.contiguous().view(x.size(0), -1)
+        # Fixed: Since batch_first=True, no permutation needed
+        # x shape: (batch, channels=64, seq_len=7)
+        x = x.permute(0, 2, 1)  # Convert to (batch, seq_len, channels) for transformer
+        x = self.transformer(x)  # Fixed: Use correct attribute name
+        x = x.contiguous().view(x.size(0), -1)  # Flatten: (batch, seq_len * channels)
         
         projection = self.projection_layer(x)
         
@@ -291,7 +319,7 @@ if __name__ == '__main__':
     y_path = ['data/y_train.npy']
 
     epochs = 100
-    model_name = 'evidential_full_v12'
+    model_name = 'evidential_full_v13'
     batch_size = 32
     learning_rate = 0.0001 # Slightly lower LR for more stable training
     num_classes = 2

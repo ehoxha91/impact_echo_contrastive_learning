@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
-from dataloaders.dataloader import ImpactEchoDatasetClassifier
+from dataloaders.dataloader import ImpactEchoDatasetClassifier, ImpactEchoDatasetClassifierAug
 import tqdm
 import numpy as np
 from utils import *
@@ -306,7 +306,7 @@ if __name__ == '__main__':
     num_classes = 2
     validation_split = 0.28  # 20% for validation
     
-    dataset = ImpactEchoDatasetClassifier(X_path, y_path=y_path, array_size=860)
+    dataset = ImpactEchoDatasetClassifierAug(X_path, y_path=y_path, array_size=860)
     print(f"Total number of samples: {len(dataset)}")
     
     # Split dataset into train and validation

@@ -37,12 +37,12 @@ import math
 
 class WaveFeatureExtractor(nn.Module):
     """Multi-scale wave feature extraction with dilated convolutions"""
-    def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7, 9]):
+    def __init__(self, in_channels, out_channels, kernel_sizes=[200, 100, 50, 25, 13, 7]):
         super().__init__()
         self.branches = nn.ModuleList([
             nn.Sequential(
                 nn.Conv1d(in_channels, out_channels // len(kernel_sizes), 
-                         kernel_size=k, padding=k//2, dilation=1),
+                         kernel_size=k, padding='same', dilation=1),
                 nn.BatchNorm1d(out_channels // len(kernel_sizes)),
                 nn.GELU()
             ) for k in kernel_sizes
@@ -113,10 +113,10 @@ class ImprovedEvidentialIENet(nn.Module):
         self.num_classes = num_classes
         
         # Multi-scale initial feature extraction
-        self.wave_features = WaveFeatureExtractor(1, 32)
+        self.wave_features = WaveFeatureExtractor(1, 36)
         
         # Progressive feature refinement with better gradient flow
-        self.residual_1 = EnhancedResidualBlock(32, 64, input_length)
+        self.residual_1 = EnhancedResidualBlock(36, 64, input_length)
         self.residual_2 = EnhancedResidualBlock(64, 128, input_length // 2)
         self.residual_3 = EnhancedResidualBlock(128, 256, input_length // 4)
         self.residual_4 = EnhancedResidualBlock(256, 256, input_length // 8)
@@ -199,7 +199,7 @@ class ImprovedEvidentialIENet(nn.Module):
         # Defect characteristics (optional auxiliary output)
         defect_features = self.defect_features(features)
         
-        return evidence, features
+        return evidence, defect_features
 
     def predict_with_uncertainty(self, x):
         """
@@ -435,17 +435,16 @@ def create_model(input_length=860, num_classes=2):
     return model
 
 
-
 if __name__ == '__main__':
     X_path = ['data/X_train_860.npy']
     y_path = ['data/y_train.npy']
 
     epochs = 100
-    model_name = 'evidential_transformer_v1'
-    batch_size = 32
+    model_name = 'evidential_transformer_v4'
+    batch_size = 128
     learning_rate = 0.0001 # Slightly lower LR for more stable training
     num_classes = 2
-    validation_split = 0.28  # 28% for validation
+    validation_split = 0.3  # 28% for validation
     
     dataset = ImpactEchoDatasetClassifierAug(X_path, y_path=y_path, array_size=860)
     print(f"Total number of samples: {len(dataset)}")
@@ -484,10 +483,15 @@ if __name__ == '__main__':
     print('Training Full Evidential Deep Learning classifier...')
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
 
-    best_val_loss = float('inf')
-    best_val_accuracy = 0.0
-    patience = 15
+    # MODIFIED: Track best validation accuracy instead of loss
+    best_val_accuracy = 0.0  # Start from 0 for accuracy
+    best_val_loss = float('inf')  # Still track loss for logging
+    patience = 25
     patience_counter = 0
+    
+    # Track validation metrics history
+    val_accuracy_history = []
+    val_loss_history = []
     
     for epoch in range(epochs):        
         # Train
@@ -529,6 +533,10 @@ if __name__ == '__main__':
         avg_val_loss = val_total_loss / len(val_dataloader)
         val_accuracy = 100.0 * val_correct / val_total
         
+        # Store history
+        val_accuracy_history.append(val_accuracy)
+        val_loss_history.append(avg_val_loss)
+        
         current_lr = optimizer.param_groups[0]['lr']
         print(f'Epoch {epoch:03d}, Train Loss: {train_loss:.4f} (NLL: {train_nll:.4f}, KL: {train_kl_div:.4f}, Penalty: {train_penalty:.4f}), '
               f'Train Acc: {train_acc:.2f}%, Val Loss: {avg_val_loss:.4f}, Val Acc: {val_accuracy:.2f}%, LR: {current_lr:.8f}')
@@ -543,40 +551,68 @@ if __name__ == '__main__':
         writer.add_scalar("Accuracy/val", val_accuracy, epoch)
         writer.add_scalar("Learning_Rate", current_lr, epoch)
         
-        # Save best model based on validation loss
-        if avg_val_loss < best_val_loss:
-            print(f"Best Validation Loss: {avg_val_loss:.4f} (was {best_val_loss:.4f}), Val Acc: {val_accuracy:.2f}%")
-            best_val_loss = avg_val_loss
+        # MODIFIED: Save best model based on validation ACCURACY
+        if val_accuracy > best_val_accuracy:
+            print(f"🎯 New Best Validation Accuracy: {val_accuracy:.2f}% (was {best_val_accuracy:.2f}%), Val Loss: {avg_val_loss:.4f}")
             best_val_accuracy = val_accuracy
+            best_val_loss = avg_val_loss  # Track the loss at best accuracy
             patience_counter = 0
-            save_model(model, f'weights/{model_name}.pth')
+            save_model(model, f'weights/{model_name}_best_acc.pth')
             
-            # Save additional checkpoint info
+            # Save comprehensive checkpoint info
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
-                'best_val_loss': best_val_loss,
                 'best_val_accuracy': best_val_accuracy,
+                'best_val_loss_at_best_acc': best_val_loss,
                 'train_loss': train_loss,
                 'val_loss': avg_val_loss,
                 'train_accuracy': train_acc,
-                'val_accuracy': val_accuracy
-            }, f'weights/{model_name}_checkpoint.pth')
+                'val_accuracy': val_accuracy,
+                'val_accuracy_history': val_accuracy_history,
+                'val_loss_history': val_loss_history
+            }, f'weights/{model_name}_checkpoint_best_acc.pth')
+            
+            # Also save a backup with epoch number
+            torch.save(model.state_dict(), f'weights/{model_name}_epoch_{epoch}_acc_{val_accuracy:.1f}.pth')
         else:
             patience_counter += 1
+            
+        # Optional: Also save if we achieve best loss (for comparison)
+        if avg_val_loss < best_val_loss and avg_val_loss != best_val_loss:
+            print(f"📉 Best Validation Loss: {avg_val_loss:.4f}, but accuracy is {val_accuracy:.2f}% (best acc: {best_val_accuracy:.2f}%)")
+            # You can optionally save this model too with a different name
+            # save_model(model, f'weights/{model_name}_best_loss.pth')
         
-        # Early stopping
+        # Early stopping based on accuracy
         if patience_counter >= patience:
-            print(f"Early stopping triggered after {patience} epochs without improvement")
-            print(f"Best validation loss: {best_val_loss:.4f}, Best validation accuracy: {best_val_accuracy:.2f}%")
+            print(f"Early stopping triggered after {patience} epochs without accuracy improvement")
+            print(f"Best validation accuracy: {best_val_accuracy:.2f}% (with loss: {best_val_loss:.4f})")
+            break
+        
+        # Additional stopping criterion: if accuracy is very high
+        if val_accuracy >= 99.5:
+            print(f"Stopping early due to near-perfect validation accuracy: {val_accuracy:.2f}%")
             break
         
         scheduler.step()
 
+    print("\n" + "="*50)
+    print(f"Training completed!")
+    print(f"Best validation accuracy achieved: {best_val_accuracy:.2f}%")
+    print(f"Validation loss at best accuracy: {best_val_loss:.4f}")
+    print("="*50 + "\n")
+
+    # Load the best model for final evaluation
+    print("Loading best model for final evaluation...")
+    checkpoint = torch.load(f'weights/{model_name}_checkpoint_best_acc.pth')
+    model.load_state_dict(checkpoint['model_state_dict'])
+    print(f"Loaded model from epoch {checkpoint['epoch']} with val accuracy {checkpoint['best_val_accuracy']:.2f}%")
+
     # Test evaluation
-    print("\nEvaluating model...")
+    print("\nEvaluating model on test set...")
     
     # Load test data
     X_test_path = ['data/X_test_860.npy']
@@ -607,6 +643,15 @@ if __name__ == '__main__':
     print(f"Correct Predictions - Mean Confidence: {confidences[correct_preds].mean():.4f}")
     print(f"Incorrect Predictions - Mean Confidence: {confidences[~correct_preds].mean():.4f}")
     
+    # Calculate per-class accuracy
+    print(f"\nPer-class Performance:")
+    for class_idx in range(num_classes):
+        class_mask = targets == class_idx
+        class_correct = (pred_classes[class_mask] == targets[class_mask]).sum().item()
+        class_total = class_mask.sum().item()
+        class_acc = 100.0 * class_correct / class_total if class_total > 0 else 0
+        print(f"Class {class_idx}: {class_acc:.2f}% ({class_correct}/{class_total})")
+    
     # Save comprehensive results
     torch.save({
         'predictions': predictions,
@@ -617,6 +662,8 @@ if __name__ == '__main__':
         'targets': targets,
         'alphas': alphas,
         'accuracy': accuracy,
+        'best_val_accuracy': best_val_accuracy,
+        'best_val_loss_at_best_acc': best_val_loss,
         'model_config': {
             'num_classes': num_classes,
             'epochs': epochs,
@@ -627,7 +674,7 @@ if __name__ == '__main__':
         }
     }, f'weights/{model_name}_results.pth')
     
-    print(f"Results saved to weights/{model_name}_results.pth")
+    print(f"\nResults saved to weights/{model_name}_results.pth")
 
     writer.flush()
     writer.close()

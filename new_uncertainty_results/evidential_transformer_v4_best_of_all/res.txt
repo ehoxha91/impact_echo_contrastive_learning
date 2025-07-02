@@ -1,0 +1,632 @@
+=== Analyzing DS1 Test Results ===
+Dataset: DS1 Test
+Test Accuracy: 90.48%
+Number of samples: 252
+Debug numpy shapes:
+  pred_classes_np: (252,)
+  targets_np: (252,)
+  confidences_np: (252,)
+  epistemic_unc_np: (252,)
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 252
+Class distribution: No Defect: 188, Defect: 64
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 180          8           
+       Defect   16           48          
+
+=== Binary Classification Metrics ===
+True Positives (TP):   48
+True Negatives (TN):   180
+False Positives (FP):  8
+False Negatives (FN):  16
+
+=== Performance Metrics ===
+Overall Accuracy:      0.9048 (90.48%)
+Precision (PPV):       0.8571 (85.71%)
+Recall (Sensitivity):  0.7500 (75.00%)
+Specificity:           0.9574 (95.74%)
+Negative Pred. Value:  0.9184 (91.84%)
+F1 Score:              0.8000
+
+=== Error Rates ===
+False Positive Rate:   0.0426 (4.26%)
+False Negative Rate:   0.2500 (25.00%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.9574 (95.74%)
+Defect Detection Accuracy: 0.7500 (75.00%)
+
+Balanced Accuracy:     0.8537 (85.37%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.8571
+Sklearn Recall:        0.7500
+Sklearn F1:            0.8000
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       0.92      0.96      0.94       188
+      Defect       0.86      0.75      0.80        64
+
+    accuracy                           0.90       252
+   macro avg       0.89      0.85      0.87       252
+weighted avg       0.90      0.90      0.90       252
+
+Correct Predictions: 228/252
+
+=== Key Defect Detection Performance ===
+Precision (Defect): 0.8571 (85.71%)
+Recall (Defect):    0.7500 (75.00%)
+F1-Score:           0.8000
+Specificity:        0.9574 (95.74%)
+Balanced Accuracy:  0.8537 (85.37%)
+
+=== Live Uncertainty Analysis ===
+Total Uncertainty - Mean: 0.318138 ± 0.083321
+Epistemic Uncertainty - Mean: 0.284148 ± 0.066516
+Aleatoric Uncertainty - Mean: 0.033991 ± 0.017273
+Confidence - Mean: 0.837475 ± 0.068946
+
+🎨 Creating beautiful visualizations for DS1 Test...
+✓ Advanced uncertainty distribution analysis saved to new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_distributions.png
+  📊 Creating comprehensive 9-subplot analysis for DS1 Test...
+✓ Comprehensive evidential uncertainty analysis saved to new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_analysis.png
+
+🗺️  Creating spatial maps for DS1 Test (252 samples)
+✅ Using exact spatial shape: 9×28 = 252 locations
+🔄 Reshaping data to spatial grid: (9, 28)
+✅ Successfully created spatial maps with shape (9, 28)
+✅ Comprehensive spatial uncertainty maps saved for DS1 Test
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ds1_test.png
+  🗺️  Shape: 9×28 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+
+=== Advanced Uncertainty Correlation Analysis ===
+Epistemic-Aleatoric Correlation: 0.9659
+Total-Confidence Correlation: -0.8656
+Evidence-Confidence Correlation: 0.8177
+
+=== Uncertainty Decomposition Analysis ===
+Mean Epistemic/(Epistemic+Aleatoric) Ratio: 0.8979
+Samples with high epistemic dominance (>0.7): 252
+Samples with high aleatoric dominance (<0.3): 0
+
+=== Statistical Significance Analysis ===
+T-test (Correct vs Incorrect Epistemic): t=-4.7936, p=0.000003
+✓ Significant difference in epistemic uncertainty between correct/incorrect predictions
+✓ Advanced correlation analysis complete
+
+🗺️  Creating individual defect maps for DS1 Test...
+✅ Using exact spatial shape: 9×28 for individual maps
+🎨 Generating individual defect maps for DS1 Test (Shape: 9×28)...
+✅ Individual defect maps saved for DS1 Test:
+  ✓ evidential_transformer_v4_model_ds1_test.png (Classification)
+  ✓ evidential_transformer_v4_model_epistemic_ds1_test.png (Model Uncertainty)
+  ✓ evidential_transformer_v4_model_aleatoric_ds1_test.png (Data Uncertainty)
+  ✓ evidential_transformer_v4_model_total_uncertainty_ds1_test.png (Total Uncertainty)
+  ✓ evidential_transformer_v4_model_confidence_ds1_test.png (Confidence)
+  ✓ evidential_transformer_v4_model_evidence_ds1_test.png (Evidence Strength)
+✅ All individual defect maps generated for DS1 Test with shape 9×28
+
+🗺️  Creating spatial maps for DS1 Test (252 samples)
+✅ Using exact spatial shape: 9×28 = 252 locations
+🔄 Reshaping data to spatial grid: (9, 28)
+✅ Successfully created spatial maps with shape (9, 28)
+✅ Comprehensive spatial uncertainty maps saved for DS1 Test
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ds1_test.png
+  🗺️  Shape: 9×28 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+🎨 Creating DS1 comparison figure for DS1 Test...
+✅ DS1 comparison figure saved: evidential_transformer_v4_ds1_comparison_figure.png
+  ✓ Shows: Ground Truth | Predictions | Predictions+Uncertainty | High Uncertainty Regions
+  ✓ Accuracy: 90.5%, High Uncertainty: 18/252 locations
+✓ Beautiful analysis complete for DS1 Test!
+
+=== Analyzing DS3 Overlay Results ===
+Dataset: DS3 Overlay
+Test Accuracy: 75.99%
+Number of samples: 1008
+Debug numpy shapes:
+  pred_classes_np: (1008,)
+  targets_np: (1008,)
+  confidences_np: (1008,)
+  epistemic_unc_np: (1008,)
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 1008
+Class distribution: No Defect: 320, Defect: 688
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 264          56          
+       Defect   186          502         
+
+=== Binary Classification Metrics ===
+True Positives (TP):   502
+True Negatives (TN):   264
+False Positives (FP):  56
+False Negatives (FN):  186
+
+=== Performance Metrics ===
+Overall Accuracy:      0.7599 (75.99%)
+Precision (PPV):       0.8996 (89.96%)
+Recall (Sensitivity):  0.7297 (72.97%)
+Specificity:           0.8250 (82.50%)
+Negative Pred. Value:  0.5867 (58.67%)
+F1 Score:              0.8058
+
+=== Error Rates ===
+False Positive Rate:   0.1750 (17.50%)
+False Negative Rate:   0.2703 (27.03%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.8250 (82.50%)
+Defect Detection Accuracy: 0.7297 (72.97%)
+
+Balanced Accuracy:     0.7773 (77.73%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.8996
+Sklearn Recall:        0.7297
+Sklearn F1:            0.8058
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       0.59      0.82      0.69       320
+      Defect       0.90      0.73      0.81       688
+
+    accuracy                           0.76      1008
+   macro avg       0.74      0.78      0.75      1008
+weighted avg       0.80      0.76      0.77      1008
+
+Correct Predictions: 766/1008
+
+=== Key Defect Detection Performance ===
+Precision (Defect): 0.8996 (89.96%)
+Recall (Defect):    0.7297 (72.97%)
+F1-Score:           0.8058
+Specificity:        0.8250 (82.50%)
+Balanced Accuracy:  0.7773 (77.73%)
+
+=== Live Uncertainty Analysis ===
+Total Uncertainty - Mean: 0.362044 ± 0.137676
+Epistemic Uncertainty - Mean: 0.318871 ± 0.111632
+Aleatoric Uncertainty - Mean: 0.043173 ± 0.026848
+Confidence - Mean: 0.803597 ± 0.102018
+
+🎨 Creating beautiful visualizations for DS3 Overlay...
+  ⏭️  Skipping comprehensive 9-subplot analysis for DS3 Overlay (only DS1 and DS3)
+
+🗺️  Creating spatial maps for DS3 Overlay (1008 samples)
+⚠️  Unknown dataset size 1008, checking common patterns...
+❌ Size mismatch: 1008 samples vs 252 expected ((9, 28))
+✂️  Truncating to first 252 samples to fit spatial grid
+🔄 Reshaping data to spatial grid: (9, 28)
+✅ Successfully created spatial maps with shape (9, 28)
+✅ Comprehensive spatial uncertainty maps saved for DS3 Overlay
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ds3_overlay.png
+  🗺️  Shape: 9×28 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+
+=== Advanced Uncertainty Correlation Analysis ===
+Epistemic-Aleatoric Correlation: 0.9629
+Total-Confidence Correlation: -0.8378
+Evidence-Confidence Correlation: 0.8360
+
+=== Uncertainty Decomposition Analysis ===
+Mean Epistemic/(Epistemic+Aleatoric) Ratio: 0.8891
+Samples with high epistemic dominance (>0.7): 1008
+Samples with high aleatoric dominance (<0.3): 0
+
+=== Statistical Significance Analysis ===
+T-test (Correct vs Incorrect Epistemic): t=-6.9468, p=0.000000
+✓ Significant difference in epistemic uncertainty between correct/incorrect predictions
+✓ Advanced correlation analysis complete
+
+🗺️  Creating individual defect maps for DS3 Overlay...
+🎨 Generating individual defect maps for DS3 Overlay (Shape: 9×28)...
+✅ Individual defect maps saved for DS3 Overlay:
+  ✓ evidential_transformer_v4_model_ds3_overlay.png (Classification)
+  ✓ evidential_transformer_v4_model_epistemic_ds3_overlay.png (Model Uncertainty)
+  ✓ evidential_transformer_v4_model_aleatoric_ds3_overlay.png (Data Uncertainty)
+  ✓ evidential_transformer_v4_model_total_uncertainty_ds3_overlay.png (Total Uncertainty)
+  ✓ evidential_transformer_v4_model_confidence_ds3_overlay.png (Confidence)
+  ✓ evidential_transformer_v4_model_evidence_ds3_overlay.png (Evidence Strength)
+✅ All individual defect maps generated for DS3 Overlay with shape 9×28
+
+🗺️  Creating spatial maps for DS3 Overlay (1008 samples)
+⚠️  Unknown dataset size 1008, checking common patterns...
+❌ Size mismatch: 1008 samples vs 252 expected ((9, 28))
+✂️  Truncating to first 252 samples to fit spatial grid
+🔄 Reshaping data to spatial grid: (9, 28)
+✅ Successfully created spatial maps with shape (9, 28)
+✅ Comprehensive spatial uncertainty maps saved for DS3 Overlay
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ds3_overlay.png
+  🗺️  Shape: 9×28 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+✓ Beautiful analysis complete for DS3 Overlay!
+
+=== Analyzing CCNY May 2022 Results ===
+Dataset: CCNY May 2022
+Test Accuracy: 0.00%
+Number of samples: 1178
+Debug numpy shapes:
+  pred_classes_np: (1178,)
+  targets_np: (1178,)
+  confidences_np: (1178,)
+  epistemic_unc_np: (1178,)
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 1178
+Class distribution: No Defect: 1178, Defect: 0
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 768          410         
+       Defect   0            0           
+
+=== Binary Classification Metrics ===
+True Positives (TP):   0
+True Negatives (TN):   768
+False Positives (FP):  410
+False Negatives (FN):  0
+
+=== Performance Metrics ===
+Overall Accuracy:      0.6520 (65.20%)
+Precision (PPV):       0.0000 (0.00%)
+Recall (Sensitivity):  0.0000 (0.00%)
+Specificity:           0.6520 (65.20%)
+Negative Pred. Value:  1.0000 (100.00%)
+F1 Score:              0.0000
+
+=== Error Rates ===
+False Positive Rate:   0.3480 (34.80%)
+False Negative Rate:   0.0000 (0.00%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.6520 (65.20%)
+
+Balanced Accuracy:     0.3260 (32.60%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.0000
+Sklearn Recall:        0.0000
+Sklearn F1:            0.0000
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       1.00      0.65      0.79      1178
+      Defect       0.00      0.00      0.00         0
+
+    accuracy                           0.65      1178
+   macro avg       0.50      0.33      0.39      1178
+weighted avg       1.00      0.65      0.79      1178
+
+Correct Predictions: 768/1178
+
+=== Live Uncertainty Analysis ===
+Total Uncertainty - Mean: 0.381967 ± 0.128690
+Epistemic Uncertainty - Mean: 0.335501 ± 0.103665
+Aleatoric Uncertainty - Mean: 0.046466 ± 0.025632
+Confidence - Mean: 0.796031 ± 0.094522
+
+🎨 Creating beautiful visualizations for CCNY May 2022...
+  ⏭️  Skipping comprehensive 9-subplot analysis for CCNY May 2022 (only DS1 and DS3)
+
+🗺️  Creating spatial maps for CCNY May 2022 (1178 samples)
+✅ Using exact spatial shape: 31×38 = 1178 locations
+🔄 Reshaping data to spatial grid: (31, 38)
+✅ Successfully created spatial maps with shape (31, 38)
+✅ Comprehensive spatial uncertainty maps saved for CCNY May 2022
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ccny_may_2022.png
+  🗺️  Shape: 31×38 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+
+=== Advanced Uncertainty Correlation Analysis ===
+Epistemic-Aleatoric Correlation: 0.9705
+Total-Confidence Correlation: -0.8821
+Evidence-Confidence Correlation: 0.8592
+
+=== Uncertainty Decomposition Analysis ===
+Mean Epistemic/(Epistemic+Aleatoric) Ratio: 0.8855
+Samples with high epistemic dominance (>0.7): 1178
+Samples with high aleatoric dominance (<0.3): 0
+
+=== Statistical Significance Analysis ===
+T-test (Correct vs Incorrect Epistemic): t=-8.2829, p=0.000000
+✓ Significant difference in epistemic uncertainty between correct/incorrect predictions
+✓ Advanced correlation analysis complete
+
+🗺️  Creating individual defect maps for CCNY May 2022...
+✅ Using exact spatial shape: 31×38 for individual maps
+🎨 Generating individual defect maps for CCNY May 2022 (Shape: 31×38)...
+✅ Individual defect maps saved for CCNY May 2022:
+  ✓ evidential_transformer_v4_model_ccny_may_2022.png (Classification)
+  ✓ evidential_transformer_v4_model_epistemic_ccny_may_2022.png (Model Uncertainty)
+  ✓ evidential_transformer_v4_model_aleatoric_ccny_may_2022.png (Data Uncertainty)
+  ✓ evidential_transformer_v4_model_total_uncertainty_ccny_may_2022.png (Total Uncertainty)
+  ✓ evidential_transformer_v4_model_confidence_ccny_may_2022.png (Confidence)
+  ✓ evidential_transformer_v4_model_evidence_ccny_may_2022.png (Evidence Strength)
+✅ All individual defect maps generated for CCNY May 2022 with shape 31×38
+
+🗺️  Creating spatial maps for CCNY May 2022 (1178 samples)
+✅ Using exact spatial shape: 31×38 = 1178 locations
+🔄 Reshaping data to spatial grid: (31, 38)
+✅ Successfully created spatial maps with shape (31, 38)
+✅ Comprehensive spatial uncertainty maps saved for CCNY May 2022
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ccny_may_2022.png
+  🗺️  Shape: 31×38 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+✓ Beautiful analysis complete for CCNY May 2022!
+
+=== Analyzing CCNY June 2022 Results ===
+Dataset: CCNY June 2022
+Test Accuracy: 0.00%
+Number of samples: 646
+Debug numpy shapes:
+  pred_classes_np: (646,)
+  targets_np: (646,)
+  confidences_np: (646,)
+  epistemic_unc_np: (646,)
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 646
+Class distribution: No Defect: 646, Defect: 0
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 530          116         
+       Defect   0            0           
+
+=== Binary Classification Metrics ===
+True Positives (TP):   0
+True Negatives (TN):   530
+False Positives (FP):  116
+False Negatives (FN):  0
+
+=== Performance Metrics ===
+Overall Accuracy:      0.8204 (82.04%)
+Precision (PPV):       0.0000 (0.00%)
+Recall (Sensitivity):  0.0000 (0.00%)
+Specificity:           0.8204 (82.04%)
+Negative Pred. Value:  1.0000 (100.00%)
+F1 Score:              0.0000
+
+=== Error Rates ===
+False Positive Rate:   0.1796 (17.96%)
+False Negative Rate:   0.0000 (0.00%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.8204 (82.04%)
+
+Balanced Accuracy:     0.4102 (41.02%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.0000
+Sklearn Recall:        0.0000
+Sklearn F1:            0.0000
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       1.00      0.82      0.90       646
+      Defect       0.00      0.00      0.00         0
+
+    accuracy                           0.82       646
+   macro avg       0.50      0.41      0.45       646
+weighted avg       1.00      0.82      0.90       646
+
+Correct Predictions: 530/646
+
+=== Live Uncertainty Analysis ===
+Total Uncertainty - Mean: 0.362456 ± 0.104950
+Epistemic Uncertainty - Mean: 0.318856 ± 0.083223
+Aleatoric Uncertainty - Mean: 0.043600 ± 0.022228
+Confidence - Mean: 0.801248 ± 0.087187
+
+🎨 Creating beautiful visualizations for CCNY June 2022...
+  ⏭️  Skipping comprehensive 9-subplot analysis for CCNY June 2022 (only DS1 and DS3)
+
+🗺️  Creating spatial maps for CCNY June 2022 (646 samples)
+✅ Using exact spatial shape: 19×34 = 646 locations
+🔄 Reshaping data to spatial grid: (19, 34)
+✅ Successfully created spatial maps with shape (19, 34)
+✅ Comprehensive spatial uncertainty maps saved for CCNY June 2022
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ccny_june_2022.png
+  🗺️  Shape: 19×34 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+
+=== Advanced Uncertainty Correlation Analysis ===
+Epistemic-Aleatoric Correlation: 0.9715
+Total-Confidence Correlation: -0.9035
+Evidence-Confidence Correlation: 0.8746
+
+=== Uncertainty Decomposition Analysis ===
+Mean Epistemic/(Epistemic+Aleatoric) Ratio: 0.8857
+Samples with high epistemic dominance (>0.7): 646
+Samples with high aleatoric dominance (<0.3): 0
+
+=== Statistical Significance Analysis ===
+T-test (Correct vs Incorrect Epistemic): t=-9.5933, p=0.000000
+✓ Significant difference in epistemic uncertainty between correct/incorrect predictions
+✓ Advanced correlation analysis complete
+
+🗺️  Creating individual defect maps for CCNY June 2022...
+✅ Using exact spatial shape: 19×34 for individual maps
+🎨 Generating individual defect maps for CCNY June 2022 (Shape: 19×34)...
+✅ Individual defect maps saved for CCNY June 2022:
+  ✓ evidential_transformer_v4_model_ccny_june_2022.png (Classification)
+  ✓ evidential_transformer_v4_model_epistemic_ccny_june_2022.png (Model Uncertainty)
+  ✓ evidential_transformer_v4_model_aleatoric_ccny_june_2022.png (Data Uncertainty)
+  ✓ evidential_transformer_v4_model_total_uncertainty_ccny_june_2022.png (Total Uncertainty)
+  ✓ evidential_transformer_v4_model_confidence_ccny_june_2022.png (Confidence)
+  ✓ evidential_transformer_v4_model_evidence_ccny_june_2022.png (Evidence Strength)
+✅ All individual defect maps generated for CCNY June 2022 with shape 19×34
+
+🗺️  Creating spatial maps for CCNY June 2022 (646 samples)
+✅ Using exact spatial shape: 19×34 = 646 locations
+🔄 Reshaping data to spatial grid: (19, 34)
+✅ Successfully created spatial maps with shape (19, 34)
+✅ Comprehensive spatial uncertainty maps saved for CCNY June 2022
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ccny_june_2022.png
+  🗺️  Shape: 19×34 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+✓ Beautiful analysis complete for CCNY June 2022!
+
+=== Analyzing CCNY Nov 2023 Results ===
+Dataset: CCNY Nov 2023
+Test Accuracy: 0.00%
+Number of samples: 1496
+Debug numpy shapes:
+  pred_classes_np: (1496,)
+  targets_np: (1496,)
+  confidences_np: (1496,)
+  epistemic_unc_np: (1496,)
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 1496
+Class distribution: No Defect: 1496, Defect: 0
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 808          688         
+       Defect   0            0           
+
+=== Binary Classification Metrics ===
+True Positives (TP):   0
+True Negatives (TN):   808
+False Positives (FP):  688
+False Negatives (FN):  0
+
+=== Performance Metrics ===
+Overall Accuracy:      0.5401 (54.01%)
+Precision (PPV):       0.0000 (0.00%)
+Recall (Sensitivity):  0.0000 (0.00%)
+Specificity:           0.5401 (54.01%)
+Negative Pred. Value:  1.0000 (100.00%)
+F1 Score:              0.0000
+
+=== Error Rates ===
+False Positive Rate:   0.4599 (45.99%)
+False Negative Rate:   0.0000 (0.00%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.5401 (54.01%)
+
+Balanced Accuracy:     0.2701 (27.01%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.0000
+Sklearn Recall:        0.0000
+Sklearn F1:            0.0000
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       1.00      0.54      0.70      1496
+      Defect       0.00      0.00      0.00         0
+
+    accuracy                           0.54      1496
+   macro avg       0.50      0.27      0.35      1496
+weighted avg       1.00      0.54      0.70      1496
+
+Correct Predictions: 808/1496
+
+=== Live Uncertainty Analysis ===
+Total Uncertainty - Mean: 0.432454 ± 0.115435
+Epistemic Uncertainty - Mean: 0.374937 ± 0.092082
+Aleatoric Uncertainty - Mean: 0.057517 ± 0.024419
+Confidence - Mean: 0.751984 ± 0.102346
+
+🎨 Creating beautiful visualizations for CCNY Nov 2023...
+  ⏭️  Skipping comprehensive 9-subplot analysis for CCNY Nov 2023 (only DS1 and DS3)
+
+🗺️  Creating spatial maps for CCNY Nov 2023 (1496 samples)
+✅ Using exact spatial shape: 44×34 = 1496 locations
+🔄 Reshaping data to spatial grid: (44, 34)
+✅ Successfully created spatial maps with shape (44, 34)
+✅ Comprehensive spatial uncertainty maps saved for CCNY Nov 2023
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ccny_nov_2023.png
+  🗺️  Shape: 44×34 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+
+=== Advanced Uncertainty Correlation Analysis ===
+Epistemic-Aleatoric Correlation: 0.9450
+Total-Confidence Correlation: -0.8021
+Evidence-Confidence Correlation: 0.7698
+
+=== Uncertainty Decomposition Analysis ===
+Mean Epistemic/(Epistemic+Aleatoric) Ratio: 0.8724
+Samples with high epistemic dominance (>0.7): 1496
+Samples with high aleatoric dominance (<0.3): 0
+
+=== Statistical Significance Analysis ===
+T-test (Correct vs Incorrect Epistemic): t=-6.0057, p=0.000000
+✓ Significant difference in epistemic uncertainty between correct/incorrect predictions
+✓ Advanced correlation analysis complete
+
+🗺️  Creating individual defect maps for CCNY Nov 2023...
+✅ Using exact spatial shape: 44×34 for individual maps
+🎨 Generating individual defect maps for CCNY Nov 2023 (Shape: 44×34)...
+✅ Individual defect maps saved for CCNY Nov 2023:
+  ✓ evidential_transformer_v4_model_ccny_nov_2023.png (Classification)
+  ✓ evidential_transformer_v4_model_epistemic_ccny_nov_2023.png (Model Uncertainty)
+  ✓ evidential_transformer_v4_model_aleatoric_ccny_nov_2023.png (Data Uncertainty)
+  ✓ evidential_transformer_v4_model_total_uncertainty_ccny_nov_2023.png (Total Uncertainty)
+  ✓ evidential_transformer_v4_model_confidence_ccny_nov_2023.png (Confidence)
+  ✓ evidential_transformer_v4_model_evidence_ccny_nov_2023.png (Evidence Strength)
+✅ All individual defect maps generated for CCNY Nov 2023 with shape 44×34
+
+🗺️  Creating spatial maps for CCNY Nov 2023 (1496 samples)
+✅ Using exact spatial shape: 44×34 = 1496 locations
+🔄 Reshaping data to spatial grid: (44, 34)
+✅ Successfully created spatial maps with shape (44, 34)
+✅ Comprehensive spatial uncertainty maps saved for CCNY Nov 2023
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ccny_nov_2023.png
+  🗺️  Shape: 44×34 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+✓ Beautiful analysis complete for CCNY Nov 2023!
+✓ Fresh inference results saved to weights/evidential_transformer_v4_inference_results.pth
+
+🎨 Creating multi-dataset comparison figure...
+
+=== Analysis Complete ===
+✓ All beautiful uncertainty visualizations completed successfully!
+
+📁 Generated Core Analysis Files:
+✓ new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_analysis.png
+✓ new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_distributions.png
+✓ new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_[dataset].png (2×3 comprehensive maps for each dataset)
+✓ new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_correlation_matrix.png
+✓ weights/evidential_transformer_v4_inference_results.pth
+✓ new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_multi_dataset_comparison.png
+
+🗺️  Generated Individual Defect Maps (for each dataset):
+✓ evidential_transformer_v4_model_[dataset].png - Classification maps
+✓ evidential_transformer_v4_model_epistemic_[dataset].png - Model uncertainty maps
+✓ evidential_transformer_v4_model_aleatoric_[dataset].png - Data uncertainty maps
+✓ evidential_transformer_v4_model_total_uncertainty_[dataset].png - Total uncertainty maps
+✓ evidential_transformer_v4_model_confidence_[dataset].png - Confidence maps
+✓ evidential_transformer_v4_model_evidence_[dataset].png - Evidence strength maps
+
+🏆 Special Comparison Figures:
+✓ evidential_transformer_v4_ds1_comparison_figure.png - 2×2 DS1 comparison (Ground Truth | Predictions | Overlay | High Uncertainty)
+✓ evidential_transformer_v4_multi_dataset_comparison.png - 4×2 multi-dataset comparison (All DS1-DS4 | Predictions & Uncertainties)
+
+🎉 Real-time uncertainty analysis complete! Check the generated visualizations.
+
+👁️  All defect maps show exact spatial locations representing real measurement positions!
+✓ All matplotlib resources cleaned up.
+
+🔴 Script execution finished. Safe to exit.

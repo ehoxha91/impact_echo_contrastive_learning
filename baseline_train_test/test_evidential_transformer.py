@@ -36,8 +36,8 @@ from train_evidential_simple import SimpleEvidentialIENet
 from train_evidential import EvidentialIENet
 
 # Default configuration - can be overridden
-default_experiment_name = "evidential_transformer_v1"
-default_model_name = "evidential_transformer_v1"
+default_experiment_name = "evidential_transformer_v4_epoch_40_acc_96.7"
+default_model_name = "evidential_transformer_v4_epoch_40_acc_96.7"
 
 
 def calculate_detailed_accuracy_metrics(pred_classes, targets, class_names=None):
@@ -2024,8 +2024,8 @@ def analyze_inference_results(results, dataset_name, experiment_name=None, model
 
 if __name__ == '__main__':
     # Configuration - easily changeable!
-    experiment_name = "evidential_transformer_v1"  # Change this for different experiments
-    model_name = "evidential_transformer_v1"  # Change this for different models
+    experiment_name = "evidential_transformer_v4_epoch_40_acc_96.7"  # Change this for different experiments
+    model_name = "evidential_transformer_v4_epoch_40_acc_96.7"  # Change this for different models
     model_path = f'weights/{model_name}.pth'
     
     print("=== Real-Time Evidential Uncertainty Analysis ===")
