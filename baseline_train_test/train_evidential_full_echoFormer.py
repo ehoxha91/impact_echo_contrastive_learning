@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
-from dataloaders.dataloader import ImpactEchoDatasetClassifier
+from dataloaders.dataloader import ImpactEchoDatasetClassifier, ImpactEchoDatasetClassifierAug
 import tqdm
 import numpy as np
 from utils import *
@@ -27,6 +27,7 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 from models.model_parts import ResidualBlock
+from torch_geometric.nn import MLP
 
 
 class FullEvidentialIENet(nn.Module):
@@ -39,22 +40,15 @@ class FullEvidentialIENet(nn.Module):
         self.verbose = verbose
         self.num_classes = num_classes
         
-        # Feature extraction layers (same as baseline)
         self.residual_1 = ResidualBlock(1, 8, 200)
         self.residual_2 = ResidualBlock(8, 16, 100)
         self.residual_3 = ResidualBlock(16, 16, 50)
         self.residual_4 = ResidualBlock(16, 32, 25)
         self.residual_5 = ResidualBlock(32, 64, 13)
         self.residual_6 = ResidualBlock(64, 64, 7)
-        
-        # LSTM layers
-        self.bilstm_1 = nn.LSTM(input_size=832, hidden_size=32, num_layers=1, 
-                               batch_first=True, bidirectional=True)
-        self.bilstm_2 = nn.LSTM(input_size=64, hidden_size=32, num_layers=1, 
-                               batch_first=True, bidirectional=True)
-        self.bilstm_3 = nn.LSTM(input_size=64, hidden_size=32, num_layers=1, 
-                               batch_first=True, bidirectional=True)
-        
+        encoder_layer = nn.TransformerEncoderLayer(d_model=64, nhead=32, dim_feedforward=512, dropout=0.1)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=3)
+        self.projection_layer = MLP([832, 128, 64], norm=None)
         # Evidence output layer
         self.evidence_layer = nn.Linear(in_features=64, out_features=num_classes)
 
@@ -66,21 +60,18 @@ class FullEvidentialIENet(nn.Module):
         x = self.residual_4(x)
         x = self.residual_5(x)
         x = self.residual_6(x)
-
-        # Reshape and flatten
-        x = x.view(x.size(0), -1)
-        x = nn.Flatten()(x)
-        x = x.unsqueeze(0)
-
-        # LSTM layers
-        x, _ = self.bilstm_1(x)
-        x, _ = self.bilstm_2(x)
-        features, _ = self.bilstm_3(x)
+        
+        x = x.permute(2, 0, 1)  # Transformer expects (seq_len, batch_size, feature_dim)
+        x = self.transformer_encoder(x)
+        x = x.permute(1, 0, 2)  # Revert the permutation
+        x = x.contiguous().view(x.size(0), -1)
+        
+        projection = self.projection_layer(x)
         
         # Evidence output (must be positive)
-        evidence = F.softplus(self.evidence_layer(features))
+        evidence = F.softplus(self.evidence_layer(projection))
         
-        return evidence, features
+        return evidence, projection
 
     def predict_with_uncertainty(self, x):
         """
@@ -138,7 +129,7 @@ def dirichlet_kl_divergence(alphas, target_concentration=1.0):
     return kl_div.squeeze()
 
 
-def evidential_loss(evidence, targets, epoch, annealing_coefficient=1.0, regularization_coefficient=0.01):
+def evidential_loss(evidence, targets, epoch, annealing_coefficient=1.0, regularization_coefficient=0.5):
     """
     Complete evidential loss function with KL regularization
     
@@ -177,7 +168,7 @@ def evidential_loss(evidence, targets, epoch, annealing_coefficient=1.0, regular
     incorrect_evidence = torch.sum(evidence * (1 - targets_one_hot), dim=1)
     evidence_penalty = torch.mean(F.relu(incorrect_evidence - 2.0))
     
-    total_loss = torch.mean(loss) + 0.01 * evidence_penalty
+    total_loss = torch.mean(loss) + 0.005 * evidence_penalty
     
     return total_loss, torch.mean(-expected_log_likelihood), torch.mean(kl_div), evidence_penalty
 
@@ -300,13 +291,13 @@ if __name__ == '__main__':
     y_path = ['data/y_train.npy']
 
     epochs = 100
-    model_name = 'evidential_full_v9'
-    batch_size = 16
-    learning_rate = 0.0001  # Slightly lower LR for more stable training
+    model_name = 'evidential_full_v12'
+    batch_size = 32
+    learning_rate = 0.0001 # Slightly lower LR for more stable training
     num_classes = 2
-    validation_split = 0.28  # 20% for validation
+    validation_split = 0.28  # 28% for validation
     
-    dataset = ImpactEchoDatasetClassifier(X_path, y_path=y_path, array_size=860)
+    dataset = ImpactEchoDatasetClassifierAug(X_path, y_path=y_path, array_size=860)
     print(f"Total number of samples: {len(dataset)}")
     
     # Split dataset into train and validation

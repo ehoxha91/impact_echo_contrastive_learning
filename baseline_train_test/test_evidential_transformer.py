@@ -31,13 +31,13 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 from models.model_parts import ResidualBlock
-from train_evidential_full import FullEvidentialIENet, dirichlet_kl_divergence, evidential_loss
+from train_evidential_transfomer import create_model, dirichlet_kl_divergence, evidential_loss
 from train_evidential_simple import SimpleEvidentialIENet
 from train_evidential import EvidentialIENet
 
 # Default configuration - can be overridden
-default_experiment_name = "evidential_full_v9"
-default_model_name = "evidential_full_v9"
+default_experiment_name = "evidential_transformer_v1"
+default_model_name = "evidential_transformer_v1"
 
 
 def calculate_detailed_accuracy_metrics(pred_classes, targets, class_names=None):
@@ -341,7 +341,7 @@ Multi-Dataset Evidential Deep Learning Results
     return comparison_filename
 
 
-def analyze_full_evidential_results(results_path, dataset_name="DS1"):
+def analyze_full_evidential_results(results_path):
     """
     Analyze and visualize full evidential deep learning results with comprehensive metrics
     """
@@ -475,15 +475,11 @@ def analyze_full_evidential_results(results_path, dataset_name="DS1"):
         confidences_np, alphas_np, targets_np, correct_predictions
     )
     
-    # 2. Comprehensive 9-subplot analysis (ONLY for DS1 and DS3)
-    if 'DS1' in dataset_name or 'DS3' in dataset_name:
-        print(f"  📊 Creating comprehensive 9-subplot analysis for {dataset_name}...")
-        create_full_evidential_plots(
-            pred_probs_np, epistemic_unc_np, aleatoric_unc_np, total_unc_np, 
-            confidences_np, alphas_np, targets_np, correct_predictions
-        )
-    else:
-        print(f"  ⏭️  Skipping comprehensive 9-subplot analysis for {dataset_name} (only DS1 and DS3)")
+    # 2. Comprehensive 9-subplot analysis
+    create_full_evidential_plots(
+        pred_probs_np, epistemic_unc_np, aleatoric_unc_np, total_unc_np, 
+        confidences_np, alphas_np, targets_np, correct_predictions
+    )
     
     # 3. Spatial uncertainty maps
     create_spatial_uncertainty_maps(
@@ -806,7 +802,7 @@ def test_full_evidential_model_on_datasets(model_path):
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     
     # Load model
-    model = FullEvidentialIENet(num_classes=2, verbose=False).to(device)
+    model = create_model().to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     print(f"Loaded full evidential model from {model_path}")
@@ -949,6 +945,16 @@ def evaluate_full_evidential_model(model, test_loader, device):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
             
+            # Debug: Print tensor shapes to understand the concatenation issue
+            if len(all_predictions) == 0:  # First batch
+                print(f"First batch shapes:")
+                print(f"  prob: {prob.shape}")
+                print(f"  total_unc: {total_unc.shape}")
+                print(f"  confidence: {confidence.shape}")
+                print(f"  labels: {labels.shape}")
+            
+            # Ensure consistent shapes before appending
+            batch_size = X.size(0)
             all_predictions.append(prob.cpu())
             all_total_unc.append(total_unc.cpu())
             all_epistemic_unc.append(epistemic.cpu())
@@ -959,14 +965,51 @@ def evaluate_full_evidential_model(model, test_loader, device):
     
     accuracy = 100.0 * correct / total
     
-    predictions = torch.cat(all_predictions, dim=1)
-    total_uncertainties = torch.cat(all_total_unc, dim=1)
-    epistemic_uncertainties = torch.cat(all_epistemic_unc, dim=1)
-    aleatoric_uncertainties = torch.cat(all_aleatoric_unc, dim=1)
-    # Handle confidence concatenation - confidence has shape (batch_size,) for each batch
-    confidences = torch.cat([conf.squeeze() for conf in all_confidences], dim=0)
+    # Handle different batch sizes by ensuring consistent concatenation
+    # For model outputs that have sequence dimension (dim=1), concatenate along that dimension
+    # For outputs without sequence dimension, concatenate along batch dimension (dim=0)
+    
+    # Check if we have any predictions to concatenate
+    if not all_predictions:
+        raise ValueError("No predictions collected during evaluation")
+    
+    # Debug: Print shapes of first few tensors to understand structure
+    print(f"Debug concatenation shapes:")
+    if len(all_predictions) > 0:
+        print(f"  First prediction shape: {all_predictions[0].shape}")
+        print(f"  Last prediction shape: {all_predictions[-1].shape}")
+        print(f"  Total prediction tensors: {len(all_predictions)}")
+    
+    # Try to concatenate along the correct dimension
+    # If tensors have shape (1, batch_size, ...), concatenate along dim=1
+    # If they have shape (batch_size, ...), concatenate along dim=0
+    try:
+        predictions = torch.cat(all_predictions, dim=1)
+        total_uncertainties = torch.cat(all_total_unc, dim=1)
+        epistemic_uncertainties = torch.cat(all_epistemic_unc, dim=1)
+        aleatoric_uncertainties = torch.cat(all_aleatoric_unc, dim=1)
+        alphas = torch.cat(all_alphas, dim=1)
+    except RuntimeError as e:
+        print(f"Concatenation along dim=1 failed: {e}")
+        print("Trying concatenation along dim=0...")
+        # Squeeze the first dimension if it exists and try concatenating along dim=0
+        predictions = torch.cat([p.squeeze(0) if p.dim() > 2 else p for p in all_predictions], dim=0)
+        total_uncertainties = torch.cat([t.squeeze(0) if t.dim() > 2 else t for t in all_total_unc], dim=0)
+        epistemic_uncertainties = torch.cat([e.squeeze(0) if e.dim() > 2 else e for e in all_epistemic_unc], dim=0)
+        aleatoric_uncertainties = torch.cat([a.squeeze(0) if a.dim() > 2 else a for a in all_aleatoric_unc], dim=0)
+        alphas = torch.cat([a.squeeze(0) if a.dim() > 2 else a for a in all_alphas], dim=0)
+        
+        # Need to add sequence dimension back to match expected output format
+        predictions = predictions.unsqueeze(0)
+        total_uncertainties = total_uncertainties.unsqueeze(0)
+        epistemic_uncertainties = epistemic_uncertainties.unsqueeze(0)
+        aleatoric_uncertainties = aleatoric_uncertainties.unsqueeze(0)
+        alphas = alphas.unsqueeze(0)
+    
+    # Confidence has shape (batch_size,) for each batch - concatenate along batch dimension
+    # Targets have shape (batch_size,) for each batch - concatenate along batch dimension
+    confidences = torch.cat(all_confidences, dim=0)
     targets = torch.cat(all_targets, dim=0)
-    alphas = torch.cat(all_alphas, dim=1)
     
     return (accuracy, predictions, total_uncertainties, epistemic_uncertainties, 
             aleatoric_uncertainties, confidences, targets, alphas)
@@ -984,7 +1027,7 @@ def generate_full_evidential_maps_all_datasets(model_path='/weights/evidential_f
     model_type = None
     
     try:
-        model = FullEvidentialIENet(num_classes=2, verbose=False).to(device)
+        model = create_model().to(device)
         model.load_state_dict(torch.load(model_path, map_location=device))
         model.eval()
         model_type = "full"
@@ -1263,7 +1306,7 @@ def create_spatial_uncertainty_maps(pred_probs, epistemic_unc, aleatoric_unc, to
         cbar3.set_label('Aleatoric Uncertainty (Higher=Darker)')
         
         # 4. Total uncertainty map - combined uncertainty at each location
-        im4 = axes[1, 0].imshow(total_uncertainty_map, cmap='Purples_r', interpolation='hamming', aspect='equal')
+        im4 = axes[1, 0].imshow(total_uncertainty_map, cmap='plasma', interpolation='hamming', aspect='equal')
         axes[1, 0].set_title(f'Total Uncertainty\n(Combined)', fontsize=12, fontweight='bold')
         axes[1, 0].set_xlabel('Spatial X Position')
         axes[1, 0].set_ylabel('Spatial Y Position')
@@ -1801,9 +1844,9 @@ def save_evidential_full_maps(classification_map, epistemic_map, aleatoric_map,
 def run_inference_time_uncertainty_analysis(model_path='weights/evidential_full_v2.pth', 
                                            experiment_name=None, model_name=None):
     """
-    Run comprehensive uncertainty analysis on DS1 and DS3 datasets during inference time
+    Run beautiful uncertainty analysis during inference time - no pre-saved results needed!
     """
-    print("=== DS1 & DS3 Comprehensive Evidential Uncertainty Analysis ===")
+    print("=== Real-Time Evidential Uncertainty Analysis ===")
     print("🚀 Generating beautiful uncertainty visualizations during inference...\n")
     
     try:
@@ -1981,8 +2024,8 @@ def analyze_inference_results(results, dataset_name, experiment_name=None, model
 
 if __name__ == '__main__':
     # Configuration - easily changeable!
-    experiment_name = "evidential_full_v9"  # Change this for different experiments
-    model_name = "evidential_full_v9"  # Change this for different models
+    experiment_name = "evidential_transformer_v1"  # Change this for different experiments
+    model_name = "evidential_transformer_v1"  # Change this for different models
     model_path = f'weights/{model_name}.pth'
     
     print("=== Real-Time Evidential Uncertainty Analysis ===")
@@ -2023,8 +2066,9 @@ if __name__ == '__main__':
             # Load the saved inference results
             results_filename = f'weights/{model_name}_inference_results.pth'
             if os.path.exists(results_filename):
-                dataset_results = torch.load(results_filename, map_location='cpu')
-                create_multi_dataset_comparison_figure(dataset_results, experiment_name, model_name)
+                pass
+                # dataset_results = torch.load(results_filename, map_location='cpu')
+                # create_multi_dataset_comparison_figure(dataset_results, experiment_name, model_name)
             else:
                 print(f"⚠️  Could not find saved results at {results_filename}")
         except Exception as e:

@@ -29,13 +29,14 @@ logger.addHandler(console_handler)
 from models.model_parts import ResidualBlock
 
 
-class FullEvidentialIENet(nn.Module):
+class MulticlassEvidentialIENet(nn.Module):
     """
-    Full Evidential IENet with complete Dirichlet-based loss including KL regularization
+    Multi-class Evidential IENet for 5-class defect classification
+    4 defect types + 1 solid concrete (no-defect)
     """
     
-    def __init__(self, num_classes=2, verbose=False):
-        super(FullEvidentialIENet, self).__init__()
+    def __init__(self, num_classes=5, verbose=False):
+        super(MulticlassEvidentialIENet, self).__init__()
         self.verbose = verbose
         self.num_classes = num_classes
         
@@ -55,7 +56,7 @@ class FullEvidentialIENet(nn.Module):
         self.bilstm_3 = nn.LSTM(input_size=64, hidden_size=32, num_layers=1, 
                                batch_first=True, bidirectional=True)
         
-        # Evidence output layer
+        # Evidence output layer for 5 classes
         self.evidence_layer = nn.Linear(in_features=64, out_features=num_classes)
 
     def forward(self, x):
@@ -84,7 +85,7 @@ class FullEvidentialIENet(nn.Module):
 
     def predict_with_uncertainty(self, x):
         """
-        Get predictions with evidential uncertainty measures
+        Get predictions with evidential uncertainty measures for multi-class
         """
         with torch.no_grad():
             evidence, _ = self.forward(x)
@@ -138,9 +139,9 @@ def dirichlet_kl_divergence(alphas, target_concentration=1.0):
     return kl_div.squeeze()
 
 
-def evidential_loss(evidence, targets, epoch, annealing_coefficient=1.0, regularization_coefficient=0.01):
+def evidential_multiclass_loss(evidence, targets, epoch, annealing_coefficient=1.0, regularization_coefficient=0.01):
     """
-    Complete evidential loss function with KL regularization
+    Multi-class evidential loss function with KL regularization
     
     Args:
         evidence: Evidence values from model (batch_size, num_classes)
@@ -182,9 +183,50 @@ def evidential_loss(evidence, targets, epoch, annealing_coefficient=1.0, regular
     return total_loss, torch.mean(-expected_log_likelihood), torch.mean(kl_div), evidence_penalty
 
 
-def train_evidential_classifier(model, dataloader, optimizer, device, epoch, class_weights=None):
+class MulticlassImpactEchoDataset(ImpactEchoDatasetClassifier):
     """
-    Training function for full evidential learning
+    Modified dataset class that preserves multi-class labels instead of binarizing them
+    """
+    
+    def __init__(self, X_path, y_path, array_size=860, shuffle=False):
+        # Initialize base class but override label processing
+        self.sr = [200000, 104200]
+        self.X = np.array([])
+        self.array_size = array_size
+        self.shuffle = shuffle
+        
+        # Load X data
+        items = 0
+        for path in X_path:
+            tmp = np.load(path)
+            tmp = tmp[:, 0:self.array_size]
+            items += tmp.shape[0]
+            self.X = np.append(self.X, tmp)
+        self.X = np.reshape(self.X, (items, -1))
+        
+        # Load y data - PRESERVE ORIGINAL LABELS (don't binarize)
+        self.labels1 = np.load(y_path[0])
+        print(f"Loaded dataset {y_path[0]}, with {len(self.labels1)} data points")
+        
+        # Map labels to ensure they're in range [0, 4] for 5 classes
+        # Class 0: solid concrete (no defect)
+        # Classes 1-4: different defect types
+        self.labels1 = np.clip(self.labels1, 0, 4).astype(int)
+        print(f"Multi-class label distribution: {np.bincount(self.labels1)}")
+        
+        self.dataset1_size = len(self.labels1)
+        self.y = self.labels1
+        
+        if self.shuffle:
+            self.X_y = np.column_stack((self.X, self.y))
+            np.random.shuffle(self.X_y)
+            self.y = [int(xa) for xa in self.X_y[:,-1]]
+            self.X = self.X_y[:,:-1]
+
+
+def train_multiclass_evidential_classifier(model, dataloader, optimizer, device, epoch, class_weights=None):
+    """
+    Training function for multi-class evidential learning
     """
     model.train()
     total_loss = 0.0
@@ -206,7 +248,7 @@ def train_evidential_classifier(model, dataloader, optimizer, device, epoch, cla
         evidence = evidence.squeeze(0)  # Remove sequence dim
         
         # Compute evidential loss
-        loss, nll, kl_div, penalty = evidential_loss(
+        loss, nll, kl_div, penalty = evidential_multiclass_loss(
             evidence, labels, epoch, 
             annealing_coefficient=1.0, 
             regularization_coefficient=0.5
@@ -245,9 +287,9 @@ def train_evidential_classifier(model, dataloader, optimizer, device, epoch, cla
     return avg_loss, avg_nll, avg_kl, avg_penalty, accuracy
 
 
-def evaluate_evidential_classifier(model, test_loader, device):
+def evaluate_multiclass_evidential_classifier(model, test_loader, device):
     """
-    Evaluate evidential classifier with uncertainty analysis
+    Evaluate multi-class evidential classifier with uncertainty analysis
     """
     model.eval()
     correct = 0
@@ -300,13 +342,14 @@ if __name__ == '__main__':
     y_path = ['data/y_train.npy']
 
     epochs = 100
-    model_name = 'evidential_full_v9'
+    model_name = 'evidential_multiclass_v1'
     batch_size = 16
-    learning_rate = 0.0001  # Slightly lower LR for more stable training
-    num_classes = 2
-    validation_split = 0.28  # 20% for validation
+    learning_rate = 0.0001
+    num_classes = 5  # 4 defect types + 1 solid concrete
+    validation_split = 0.28
     
-    dataset = ImpactEchoDatasetClassifier(X_path, y_path=y_path, array_size=860)
+    # Use multi-class dataset
+    dataset = MulticlassImpactEchoDataset(X_path, y_path=y_path, array_size=860)
     print(f"Total number of samples: {len(dataset)}")
     
     # Split dataset into train and validation
@@ -323,24 +366,23 @@ if __name__ == '__main__':
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     print(f"Using device: {device}")
     
-    # Calculate class weights for imbalanced data
+    # Calculate class weights for imbalanced data (5 classes)
     y_data = np.load(y_path[0])
-    y_data[y_data < 1] = 0
-    y_data[y_data > 0] = 1
-    class_counts = np.bincount(y_data.astype(int))
+    y_data = np.clip(y_data, 0, 4).astype(int)  # Ensure 5 classes [0,1,2,3,4]
+    class_counts = np.bincount(y_data, minlength=5)
     total_samples = len(y_data)
-    class_weights = torch.FloatTensor([total_samples / (2 * count) for count in class_counts]).to(device)
+    class_weights = torch.FloatTensor([total_samples / (num_classes * count) if count > 0 else 0.0 for count in class_counts]).to(device)
     print(f"Class distribution: {class_counts}")
     print(f"Class weights: {class_weights}")
 
-    # Initialize model
-    model = FullEvidentialIENet(num_classes=num_classes, verbose=False).to(device)
+    # Initialize multi-class model
+    model = MulticlassEvidentialIENet(num_classes=num_classes, verbose=False).to(device)
     
     # Use AdamW with weight decay for better regularization
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
-    print('Training Full Evidential Deep Learning classifier...')
+    print('Training Multi-class Evidential Deep Learning classifier...')
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
 
     best_val_loss = float('inf')
@@ -350,7 +392,7 @@ if __name__ == '__main__':
     
     for epoch in range(epochs):        
         # Train
-        train_loss, train_nll, train_kl_div, train_penalty, train_acc = train_evidential_classifier(
+        train_loss, train_nll, train_kl_div, train_penalty, train_acc = train_multiclass_evidential_classifier(
             model, train_dataloader, optimizer, device, epoch, class_weights=class_weights
         )
         
@@ -369,7 +411,7 @@ if __name__ == '__main__':
                 evidence, _ = model(X)
                 evidence = evidence.squeeze(0)
                 
-                val_loss, _, _, _ = evidential_loss(
+                val_loss, _, _, _ = evidential_multiclass_loss(
                     evidence, labels, epoch,
                     annealing_coefficient=1.0,
                     regularization_coefficient=0.5
@@ -435,17 +477,17 @@ if __name__ == '__main__':
         scheduler.step()
 
     # Test evaluation
-    print("\nEvaluating model...")
+    print("\nEvaluating multi-class model...")
     
     # Load test data
     X_test_path = ['data/X_test_860.npy']
     y_test_path = ['data/y_test.npy']
-    test_dataset = ImpactEchoDatasetClassifier(X_test_path, y_path=y_test_path, array_size=860)
+    test_dataset = MulticlassImpactEchoDataset(X_test_path, y_path=y_test_path, array_size=860)
     test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
     
-    # Evidential evaluation
+    # Multi-class evidential evaluation
     (accuracy, predictions, uncertainties, epistemic_unc, 
-     aleatoric_unc, confidences, targets, alphas) = evaluate_evidential_classifier(model, test_loader, device)
+     aleatoric_unc, confidences, targets, alphas) = evaluate_multiclass_evidential_classifier(model, test_loader, device)
     
     print(f"Test Accuracy: {accuracy:.2f}%")
     print(f"Mean Total Uncertainty: {uncertainties.mean():.4f} ± {uncertainties.std():.4f}")
@@ -454,17 +496,20 @@ if __name__ == '__main__':
     print(f"Mean Confidence: {confidences.mean():.4f} ± {confidences.std():.4f}")
     print(f"Mean Alpha Sum: {alphas.mean():.4f} ± {alphas.std():.4f}")
     
-    # Analyze uncertainty by correctness
+    # Multi-class specific analysis
     pred_classes = torch.argmax(predictions.squeeze(0), dim=1)
     correct_preds = (pred_classes == targets)
     
-    print(f"\nUncertainty Analysis:")
+    print(f"\nMulti-class Analysis:")
     print(f"Correct Predictions - Mean Total Uncertainty: {uncertainties.squeeze(0)[correct_preds].mean():.4f}")
     print(f"Incorrect Predictions - Mean Total Uncertainty: {uncertainties.squeeze(0)[~correct_preds].mean():.4f}")
-    print(f"Correct Predictions - Mean Epistemic Uncertainty: {epistemic_unc.squeeze(0)[correct_preds].mean():.4f}")
-    print(f"Incorrect Predictions - Mean Epistemic Uncertainty: {epistemic_unc.squeeze(0)[~correct_preds].mean():.4f}")
-    print(f"Correct Predictions - Mean Confidence: {confidences[correct_preds].mean():.4f}")
-    print(f"Incorrect Predictions - Mean Confidence: {confidences[~correct_preds].mean():.4f}")
+    
+    # Class-wise accuracy
+    for class_idx in range(num_classes):
+        class_mask = targets == class_idx
+        if class_mask.sum() > 0:
+            class_accuracy = (pred_classes[class_mask] == class_idx).float().mean()
+            print(f"Class {class_idx} Accuracy: {class_accuracy*100:.2f}% ({class_mask.sum()} samples)")
     
     # Save comprehensive results
     torch.save({
@@ -482,7 +527,7 @@ if __name__ == '__main__':
             'batch_size': batch_size,
             'learning_rate': learning_rate,
             'class_weights': class_weights.cpu(),
-            'model_type': 'full_evidential'
+            'model_type': 'multiclass_evidential'
         }
     }, f'weights/{model_name}_results.pth')
     

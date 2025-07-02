@@ -35,7 +35,7 @@ X_may, X_june = load_ccny_sep2022_data_into_torch_tensor(
     device=device,
     X_path='data/X_our_slab_size860.npy'
 )
-# X_overlay, y_overlay = load_ds3_overlay_test_data_into_torch_tensor(device=device)
+X_overlay, y_overlay = load_ds3_overlay_test_data_into_torch_tensor(device=device)
 
 # No GT labels
 X_nov23 = load_ccny_nov2023_data_into_torch_tensor2(

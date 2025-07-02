@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
-from dataloaders.dataloader import ImpactEchoDatasetClassifier
+from dataloaders.dataloader import ImpactEchoDatasetClassifier, ImpactEchoDatasetClassifierAug
 import tqdm
 import numpy as np
 from utils import *
@@ -27,58 +27,177 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 from models.model_parts import ResidualBlock
+from torch_geometric.nn import MLP
 
 
-class FullEvidentialIENet(nn.Module):
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
+
+class WaveFeatureExtractor(nn.Module):
+    """Multi-scale wave feature extraction with dilated convolutions"""
+    def __init__(self, in_channels, out_channels, kernel_sizes=[3, 5, 7, 9]):
+        super().__init__()
+        self.branches = nn.ModuleList([
+            nn.Sequential(
+                nn.Conv1d(in_channels, out_channels // len(kernel_sizes), 
+                         kernel_size=k, padding=k//2, dilation=1),
+                nn.BatchNorm1d(out_channels // len(kernel_sizes)),
+                nn.GELU()
+            ) for k in kernel_sizes
+        ])
+        
+    def forward(self, x):
+        # Multi-scale feature extraction
+        features = [branch(x) for branch in self.branches]
+        return torch.cat(features, dim=1)
+
+class EnhancedResidualBlock(nn.Module):
+    """Residual block with SE attention and better gradient flow"""
+    def __init__(self, in_channels, out_channels, seq_len, reduction=4):
+        super().__init__()
+        self.downsample = nn.AvgPool1d(2) if seq_len > 1 else nn.Identity()
+        mid_channels = out_channels
+        
+        self.conv1 = nn.Conv1d(in_channels, mid_channels, 3, padding=1)
+        self.bn1 = nn.BatchNorm1d(mid_channels)
+        self.conv2 = nn.Conv1d(mid_channels, out_channels, 3, padding=1)
+        self.bn2 = nn.BatchNorm1d(out_channels)
+        
+        # Squeeze-and-Excitation for channel attention
+        self.se = nn.Sequential(
+            nn.AdaptiveAvgPool1d(1),
+            nn.Conv1d(out_channels, out_channels // reduction, 1),
+            nn.ReLU(),
+            nn.Conv1d(out_channels // reduction, out_channels, 1),
+            nn.Sigmoid()
+        )
+        
+        # Skip connection
+        self.skip = nn.Conv1d(in_channels, out_channels, 1) if in_channels != out_channels else nn.Identity()
+        self.activation = nn.GELU()
+        
+    def forward(self, x):
+        identity = self.skip(x)
+        
+        out = self.activation(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        
+        # Channel attention
+        att = self.se(out)
+        out = out * att
+        
+        out = out + identity
+        out = self.activation(out)
+        out = self.downsample(out)
+        
+        return out
+
+class PositionalEncoding(nn.Module):
+    """Learnable positional encoding for wave signals"""
+    def __init__(self, d_model, max_len=256):
+        super().__init__()
+        self.pe = nn.Parameter(torch.randn(1, d_model, max_len) * 0.02)
+        
+    def forward(self, x):
+        # x shape: (batch, channels, seq_len)
+        return x + self.pe[:, :, :x.size(2)]
+
+class ImprovedEvidentialIENet(nn.Module):
     """
-    Full Evidential IENet with complete Dirichlet-based loss including KL regularization
+    Enhanced Evidential IENet for 1D wave signal defect detection
     """
-    
-    def __init__(self, num_classes=2, verbose=False):
-        super(FullEvidentialIENet, self).__init__()
-        self.verbose = verbose
+    def __init__(self, num_classes=2, input_length=200, dropout=0.1):
+        super().__init__()
         self.num_classes = num_classes
         
-        # Feature extraction layers (same as baseline)
-        self.residual_1 = ResidualBlock(1, 8, 200)
-        self.residual_2 = ResidualBlock(8, 16, 100)
-        self.residual_3 = ResidualBlock(16, 16, 50)
-        self.residual_4 = ResidualBlock(16, 32, 25)
-        self.residual_5 = ResidualBlock(32, 64, 13)
-        self.residual_6 = ResidualBlock(64, 64, 7)
+        # Multi-scale initial feature extraction
+        self.wave_features = WaveFeatureExtractor(1, 32)
         
-        # LSTM layers
-        self.bilstm_1 = nn.LSTM(input_size=832, hidden_size=32, num_layers=1, 
-                               batch_first=True, bidirectional=True)
-        self.bilstm_2 = nn.LSTM(input_size=64, hidden_size=32, num_layers=1, 
-                               batch_first=True, bidirectional=True)
-        self.bilstm_3 = nn.LSTM(input_size=64, hidden_size=32, num_layers=1, 
-                               batch_first=True, bidirectional=True)
+        # Progressive feature refinement with better gradient flow
+        self.residual_1 = EnhancedResidualBlock(32, 64, input_length)
+        self.residual_2 = EnhancedResidualBlock(64, 128, input_length // 2)
+        self.residual_3 = EnhancedResidualBlock(128, 256, input_length // 4)
+        self.residual_4 = EnhancedResidualBlock(256, 256, input_length // 8)
         
-        # Evidence output layer
-        self.evidence_layer = nn.Linear(in_features=64, out_features=num_classes)
-
+        # Positional encoding for transformer
+        self.pos_encoding = PositionalEncoding(256)
+        
+        # Efficient transformer with appropriate heads
+        # 8 heads × 32 dims = 256 total dims
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=256, 
+            nhead=8,  # More reasonable: 256/8 = 32 dims per head
+            dim_feedforward=1024,
+            dropout=dropout,
+            activation='gelu',
+            batch_first=True  # More intuitive
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)
+        
+        # Global and local feature aggregation
+        self.global_pool = nn.AdaptiveAvgPool1d(1)
+        self.local_pool = nn.AdaptiveMaxPool1d(4)
+        
+        # Calculate feature dimension: 256 (global) + 256*4 (local) = 1280
+        feature_dim = 256 + 256 * 4
+        
+        # Evidence pathway with uncertainty decomposition
+        self.evidence_pathway = nn.Sequential(
+            nn.Linear(feature_dim, 512),
+            nn.BatchNorm1d(512),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(512, 256),
+            nn.BatchNorm1d(256),
+            nn.GELU(),
+            nn.Dropout(dropout),
+        )
+        
+        # Separate evidence branches for aleatoric and epistemic uncertainty
+        self.evidence_layer = nn.Linear(256, num_classes)
+        self.uncertainty_layer = nn.Linear(256, num_classes)  # For epistemic uncertainty
+        
+        # Auxiliary defect characteristic predictor (size, depth, type)
+        self.defect_features = nn.Linear(256, 16)  # Additional defect characteristics
+        
     def forward(self, x):
-        # Feature extraction
+        # x shape: (batch, 1, seq_len)
+        
+        # Multi-scale wave feature extraction
+        x = self.wave_features(x)
+        
+        # Hierarchical feature extraction
         x = self.residual_1(x)
         x = self.residual_2(x)
         x = self.residual_3(x)
         x = self.residual_4(x)
-        x = self.residual_5(x)
-        x = self.residual_6(x)
-
-        # Reshape and flatten
-        x = x.view(x.size(0), -1)
-        x = nn.Flatten()(x)
-        x = x.unsqueeze(0)
-
-        # LSTM layers
-        x, _ = self.bilstm_1(x)
-        x, _ = self.bilstm_2(x)
-        features, _ = self.bilstm_3(x)
         
-        # Evidence output (must be positive)
-        evidence = F.softplus(self.evidence_layer(features))
+        # Add positional encoding for transformer
+        x = self.pos_encoding(x)
+        
+        # Transformer processing (batch, channels, seq_len) -> (batch, seq_len, channels)
+        x_t = x.transpose(1, 2)
+        x_t = self.transformer(x_t)
+        x = x_t.transpose(1, 2)
+        
+        # Multi-level pooling
+        global_features = self.global_pool(x).squeeze(-1)  # (batch, 256)
+        local_features = self.local_pool(x).flatten(1)     # (batch, 256*4)
+        
+        # Combine global and local features
+        combined = torch.cat([global_features, local_features], dim=1)
+        
+        # Evidence pathway
+        features = self.evidence_pathway(combined)
+        
+        # Evidence outputs (Dirichlet parameters)
+        evidence = F.softplus(self.evidence_layer(features)) + 1e-6
+        uncertainty = F.softplus(self.uncertainty_layer(features)) + 1e-6
+        
+        # Defect characteristics (optional auxiliary output)
+        defect_features = self.defect_features(features)
         
         return evidence, features
 
@@ -138,7 +257,7 @@ def dirichlet_kl_divergence(alphas, target_concentration=1.0):
     return kl_div.squeeze()
 
 
-def evidential_loss(evidence, targets, epoch, annealing_coefficient=1.0, regularization_coefficient=0.01):
+def evidential_loss(evidence, targets, epoch, annealing_coefficient=1.0, regularization_coefficient=0.5):
     """
     Complete evidential loss function with KL regularization
     
@@ -177,7 +296,7 @@ def evidential_loss(evidence, targets, epoch, annealing_coefficient=1.0, regular
     incorrect_evidence = torch.sum(evidence * (1 - targets_one_hot), dim=1)
     evidence_penalty = torch.mean(F.relu(incorrect_evidence - 2.0))
     
-    total_loss = torch.mean(loss) + 0.01 * evidence_penalty
+    total_loss = torch.mean(loss) + 0.005 * evidence_penalty
     
     return total_loss, torch.mean(-expected_log_likelihood), torch.mean(kl_div), evidence_penalty
 
@@ -295,18 +414,40 @@ def evaluate_evidential_classifier(model, test_loader, device):
             aleatoric_unc, confidences, targets, alphas)
 
 
+def create_model(input_length=860, num_classes=2):
+    """Factory function to create the model with proper initialization"""
+    model = ImprovedEvidentialIENet(
+        num_classes=num_classes,
+        input_length=input_length,
+        dropout=0.1
+    )
+    
+    # Initialize weights with Xavier/Kaiming
+    for m in model.modules():
+        if isinstance(m, nn.Conv1d):
+            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        elif isinstance(m, nn.Linear):
+            nn.init.xavier_normal_(m.weight)
+        elif isinstance(m, nn.BatchNorm1d):
+            nn.init.constant_(m.weight, 1)
+            nn.init.constant_(m.bias, 0)
+    
+    return model
+
+
+
 if __name__ == '__main__':
     X_path = ['data/X_train_860.npy']
     y_path = ['data/y_train.npy']
 
     epochs = 100
-    model_name = 'evidential_full_v9'
-    batch_size = 16
-    learning_rate = 0.0001  # Slightly lower LR for more stable training
+    model_name = 'evidential_transformer_v1'
+    batch_size = 32
+    learning_rate = 0.0001 # Slightly lower LR for more stable training
     num_classes = 2
-    validation_split = 0.28  # 20% for validation
+    validation_split = 0.28  # 28% for validation
     
-    dataset = ImpactEchoDatasetClassifier(X_path, y_path=y_path, array_size=860)
+    dataset = ImpactEchoDatasetClassifierAug(X_path, y_path=y_path, array_size=860)
     print(f"Total number of samples: {len(dataset)}")
     
     # Split dataset into train and validation
@@ -334,7 +475,7 @@ if __name__ == '__main__':
     print(f"Class weights: {class_weights}")
 
     # Initialize model
-    model = FullEvidentialIENet(num_classes=num_classes, verbose=False).to(device)
+    model = create_model().to(device=device)
     
     # Use AdamW with weight decay for better regularization
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
