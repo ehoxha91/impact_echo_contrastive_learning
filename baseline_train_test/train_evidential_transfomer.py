@@ -218,19 +218,21 @@ class ImprovedEvidentialIENet(nn.Module):
             prob = alphas / alpha_sum
             
             # Uncertainty measures
-            # 1. Epistemic uncertainty (vacuity): K / S 
-            epistemic_uncertainty = self.num_classes / alpha_sum
-            
-            # 2. Aleatoric uncertainty (expected data uncertainty)
-            aleatoric_uncertainty = torch.sum(prob * (1 - prob) / (alpha_sum + 1), dim=-1, keepdim=True)
-            
-            # 3. Total uncertainty
-            total_uncertainty = epistemic_uncertainty + aleatoric_uncertainty
+            aleatoric_uncertainty, epistemic_uncertainty, total_uncertainty = ImprovedEvidentialIENet.compute_uncertainties(alphas)
             
             # 4. Confidence (max probability)
             confidence = torch.max(prob, dim=-1)[0]
             
             return prob, epistemic_uncertainty, aleatoric_uncertainty, total_uncertainty, confidence, alpha_sum
+
+    @staticmethod
+    def compute_uncertainties(alpha):
+        S = torch.sum(alpha, dim=-1, keepdim=True)
+        mean = alpha / S
+        aleatoric = -torch.sum(mean * (torch.digamma(alpha + 1) - torch.digamma(S + 1)), dim=-1)
+        total = -torch.sum(mean * torch.log(mean + 1e-10), dim=-1)
+        epistemic = total - aleatoric
+        return aleatoric, epistemic, total
 
 
 def dirichlet_kl_divergence(alphas, target_concentration=1.0):

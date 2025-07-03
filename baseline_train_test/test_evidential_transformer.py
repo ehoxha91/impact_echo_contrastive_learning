@@ -36,8 +36,8 @@ from train_evidential_simple import SimpleEvidentialIENet
 from train_evidential import EvidentialIENet
 
 # Default configuration - can be overridden
-default_experiment_name = "evidential_transformer_v4_epoch_40_acc_96.7"
-default_model_name = "evidential_transformer_v4_epoch_40_acc_96.7"
+default_experiment_name = "evidential_transformer_v4_epoch_99_acc_97.5"
+default_model_name = "evidential_transformer_v4_epoch_99_acc_97.5"
 
 
 def calculate_detailed_accuracy_metrics(pred_classes, targets, class_names=None):
@@ -258,7 +258,7 @@ def create_multi_dataset_comparison_figure(dataset_results, experiment_name=None
             aspect_ratio = shape[1] / shape[0]  # width / height
             
             # Column 1: Prediction Probability Map
-            im1 = axes[row, 0].imshow(prob_map, cmap='Spectral', interpolation='hamming', aspect='equal')
+            im1 = axes[row, 0].imshow(prob_map, cmap='Spectral', interpolation='gaussian', aspect='equal')
             axes[row, 0].set_title(f'{title}\nPrediction Probability (Non-Defect)', fontsize=12, fontweight='bold')
             axes[row, 0].set_xlabel('Spatial X Position')
             axes[row, 0].set_ylabel('Spatial Y Position')
@@ -268,7 +268,7 @@ def create_multi_dataset_comparison_figure(dataset_results, experiment_name=None
             cbar1.set_label('Non-Defect Probability', fontsize=10)
             
             # Column 2: Total Uncertainty Map
-            im2 = axes[row, 1].imshow(uncertainty_map, cmap='plasma', interpolation='hamming', aspect='equal')
+            im2 = axes[row, 1].imshow(uncertainty_map, cmap='plasma', interpolation='gaussian', aspect='equal')
             axes[row, 1].set_title(f'{title}\nTotal Uncertainty', fontsize=12, fontweight='bold')
             axes[row, 1].set_xlabel('Spatial X Position')
             axes[row, 1].set_ylabel('Spatial Y Position')
@@ -1282,7 +1282,7 @@ def create_spatial_uncertainty_maps(pred_probs, epistemic_unc, aleatoric_unc, to
         non_defect_map = non_defect_prob.astype(float).reshape(shape) if hasattr(non_defect_prob, 'reshape') else pred_map
         
         # 1. Predictions map - Non-defect probability (matching baseline style)
-        im1 = axes[0, 0].imshow(non_defect_map, cmap='gray', interpolation='hamming', aspect='equal')
+        im1 = axes[0, 0].imshow(non_defect_map, cmap='gray', interpolation='gaussian', aspect='equal')
         axes[0, 0].set_title(f'Classification Map\n(Non-Defect Probability)', fontsize=12, fontweight='bold')
         axes[0, 0].set_xlabel('Spatial X Position')
         axes[0, 0].set_ylabel('Spatial Y Position')
@@ -1290,31 +1290,31 @@ def create_spatial_uncertainty_maps(pred_probs, epistemic_unc, aleatoric_unc, to
         cbar1.set_label('Non-Defect Probability')
         
         # 2. Epistemic uncertainty map - model uncertainty at each location
-        im2 = axes[0, 1].imshow(epistemic_map, cmap='Reds_r', interpolation='hamming', aspect='equal')
+        im2 = axes[0, 1].imshow(epistemic_map, cmap='Reds_r', interpolation='gaussian', aspect='equal')
         axes[0, 1].set_title(f'Epistemic Uncertainty\n(Model Uncertainty)', fontsize=12, fontweight='bold')
         axes[0, 1].set_xlabel('Spatial X Position')
         axes[0, 1].set_ylabel('Spatial Y Position')
         cbar2 = plt.colorbar(im2, ax=axes[0, 1], shrink=0.8)
-        cbar2.set_label('Epistemic Uncertainty (Higher=Darker)')
+        cbar2.set_label('Epistemic Uncertainty')
         
         # 3. Aleatoric uncertainty map - data uncertainty at each location
-        im3 = axes[0, 2].imshow(aleatoric_map, cmap='Blues_r', interpolation='hamming', aspect='equal')
+        im3 = axes[0, 2].imshow(aleatoric_map, cmap='Blues_r', interpolation='gaussian', aspect='equal')
         axes[0, 2].set_title(f'Aleatoric Uncertainty\n(Data Uncertainty)', fontsize=12, fontweight='bold')
         axes[0, 2].set_xlabel('Spatial X Position')
         axes[0, 2].set_ylabel('Spatial Y Position')
         cbar3 = plt.colorbar(im3, ax=axes[0, 2], shrink=0.8)
-        cbar3.set_label('Aleatoric Uncertainty (Higher=Darker)')
+        cbar3.set_label('Aleatoric Uncertainty ')
         
         # 4. Total uncertainty map - combined uncertainty at each location
-        im4 = axes[1, 0].imshow(total_uncertainty_map, cmap='plasma', interpolation='hamming', aspect='equal')
-        axes[1, 0].set_title(f'Total Uncertainty\n(Combined)', fontsize=12, fontweight='bold')
+        im4 = axes[1, 0].imshow(total_uncertainty_map, cmap='plasma', interpolation='gaussian', aspect='equal')
+        axes[1, 0].set_title(f'Total Uncertainty', fontsize=12, fontweight='bold')
         axes[1, 0].set_xlabel('Spatial X Position')
         axes[1, 0].set_ylabel('Spatial Y Position')
         cbar4 = plt.colorbar(im4, ax=axes[1, 0], shrink=0.8)
-        cbar4.set_label('Total Uncertainty (Higher=Darker)')
+        cbar4.set_label('Total Uncertainty ')
         
         # 5. Confidence map - prediction confidence at each location
-        im5 = axes[1, 1].imshow(confidence_map, cmap='Spectral', interpolation='hamming', aspect='equal')
+        im5 = axes[1, 1].imshow(confidence_map, cmap='Spectral', interpolation='gaussian', aspect='equal')
         axes[1, 1].set_title(f'Prediction Confidence\n(Higher=Better)', fontsize=12, fontweight='bold')
         axes[1, 1].set_xlabel('Spatial X Position')
         axes[1, 1].set_ylabel('Spatial Y Position')
@@ -1322,7 +1322,7 @@ def create_spatial_uncertainty_maps(pred_probs, epistemic_unc, aleatoric_unc, to
         cbar5.set_label('Confidence')
         
         # 6. Evidence strength map - evidence strength at each location
-        im6 = axes[1, 2].imshow(evidence_map, cmap='viridis', interpolation='hamming', aspect='equal')
+        im6 = axes[1, 2].imshow(evidence_map, cmap='viridis', interpolation='gaussian', aspect='equal')
         axes[1, 2].set_title(f'Evidence Strength\n(Alpha Sum)', fontsize=12, fontweight='bold')
         axes[1, 2].set_xlabel('Spatial X Position')
         axes[1, 2].set_ylabel('Spatial Y Position')
@@ -1457,7 +1457,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     
     # 1. Classification map (non-defect probability) - DEFECT MAP with proper aspect ratio
     plt.figure(figsize=(fig_width, fig_height))
-    plt.imshow(classification_map, cmap='Spectral', interpolation='hamming', aspect=1.0)
+    plt.imshow(classification_map, cmap='Spectral', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Non-defect Probability', shrink=0.8)
     plt.title(f'Evidential Classification Map - {dataset_name}\nSpatial Shape: {shape[0]}×{shape[1]} (Each pixel = 1 measurement)', 
               fontsize=14, fontweight='bold')
@@ -1468,7 +1468,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     
     # 2. Epistemic uncertainty map - MODEL UNCERTAINTY DEFECT MAP with proper aspect ratio
     plt.figure(figsize=(fig_width, fig_height))
-    plt.imshow(epistemic_map, cmap='plasma', interpolation='hamming', aspect=1.0)
+    plt.imshow(epistemic_map, cmap='plasma', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Epistemic Uncertainty (Higher=More Uncertain)', shrink=0.8)
     plt.title(f'Evidential Epistemic Uncertainty - {dataset_name}\nModel Uncertainty at Each Location (Each pixel = 1 measurement)', 
               fontsize=14, fontweight='bold')
@@ -1479,7 +1479,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     
     # 3. Aleatoric uncertainty map - DATA UNCERTAINTY DEFECT MAP with proper aspect ratio
     plt.figure(figsize=(fig_width, fig_height))
-    plt.imshow(aleatoric_map, cmap='plasma', interpolation='hamming', aspect=1.0)
+    plt.imshow(aleatoric_map, cmap='plasma', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Aleatoric Uncertainty (Higher=More Uncertain)', shrink=0.8)
     plt.title(f'Evidential Aleatoric Uncertainty - {dataset_name}\nData Uncertainty at Each Location (Each pixel = 1 measurement)', 
               fontsize=14, fontweight='bold')
@@ -1490,7 +1490,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     
     # 4. Total uncertainty map - COMBINED UNCERTAINTY DEFECT MAP with proper aspect ratio
     plt.figure(figsize=(fig_width, fig_height))
-    plt.imshow(total_uncertainty_map, cmap='Purples_r', interpolation='hamming', aspect=1.0)
+    plt.imshow(total_uncertainty_map, cmap='Purples_r', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Total Uncertainty (Higher=More Uncertain)', shrink=0.8)
     plt.title(f'Evidential Total Uncertainty - {dataset_name}\nCombined Uncertainty at Each Location (Each pixel = 1 measurement)', 
               fontsize=14, fontweight='bold')
@@ -1501,7 +1501,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     
     # 5. Confidence map - CONFIDENCE DEFECT MAP with proper aspect ratio
     plt.figure(figsize=(fig_width, fig_height))
-    plt.imshow(confidence_map, cmap='magma_r', interpolation='hamming', aspect=1.0)
+    plt.imshow(confidence_map, cmap='magma_r', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Confidence (Higher=More Confident)', shrink=0.8)
     plt.title(f'Evidential Confidence Map - {dataset_name}\nPrediction Confidence at Each Location (Each pixel = 1 measurement)', 
               fontsize=14, fontweight='bold')
@@ -1512,7 +1512,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     
         # 6. Evidence strength map - EVIDENCE DEFECT MAP (NEW!) with proper aspect ratio
     plt.figure(figsize=(fig_width, fig_height))
-    plt.imshow(evidence_map, cmap='viridis', interpolation='hamming', aspect=1.0)
+    plt.imshow(evidence_map, cmap='viridis', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Evidence Strength (Higher=Stronger Evidence)', shrink=0.8)
     plt.title(f'Evidential Evidence Strength - {dataset_name}\nEvidence Strength at Each Location (Each pixel = 1 measurement)', 
               fontsize=14, fontweight='bold')
@@ -1603,9 +1603,9 @@ def create_ds1_comparison_figure(targets, predictions, pred_probs, total_uncerta
         
         # 3. Predictions + Uncertainty Overlay (Bottom Left) - square pixels
         # Create overlay: predictions as base, uncertainty as transparency
-        # im3 = axes[1, 0].imshow(predictions_map, cmap='inferno', interpolation='hamming', aspect='equal', alpha=0.7)
+        # im3 = axes[1, 0].imshow(predictions_map, cmap='inferno', interpolation='gaussian', aspect='equal', alpha=0.7)
         # Overlay uncertainty with transparency
-        im3_overlay = axes[1, 0].imshow(total_unc_map, cmap='plasma', interpolation='hamming', aspect='equal', alpha=0.5)
+        im3_overlay = axes[1, 0].imshow(total_unc_map, cmap='plasma', interpolation='gaussian', aspect='equal', alpha=0.5)
         axes[1, 0].set_title('Uncertainty Map', fontsize=14)
         axes[1, 0].set_xlabel('Spatial X Position')
         axes[1, 0].set_ylabel('Spatial Y Position')
@@ -1613,7 +1613,7 @@ def create_ds1_comparison_figure(targets, predictions, pred_probs, total_uncerta
         cbar3.set_label('Total Uncertainty')
         
         # 4. High Uncertainty Regions (Bottom Right) - square pixels
-        im4 = axes[1, 1].imshow(high_unc_map, cmap='plasma', interpolation='hamming', aspect='equal')
+        im4 = axes[1, 1].imshow(high_unc_map, cmap='plasma', interpolation='gaussian', aspect='equal')
         axes[1, 1].set_title(f'High Uncertainty Regions\n(> μ + 1.5σ = {high_unc_threshold:.4f})', fontsize=14)
         axes[1, 1].set_xlabel('Spatial X Position')
         axes[1, 1].set_ylabel('Spatial Y Position')
@@ -1732,7 +1732,7 @@ def save_evidential_full_baseline_maps(classification_map, epistemic_map, aleato
     
     # Classification map (non-defect probability)
     plt.figure(figsize=(10, 8))
-    plt.imshow(classification_map, cmap='Spectral', interpolation='hamming',)
+    plt.imshow(classification_map, cmap='Spectral', interpolation='gaussian',)
     plt.colorbar(label='Non-defect Probability')
     plt.title(f'{model_prefix.title()} - Classification ({dataset_name})')
     plt.axis('off')
@@ -1741,7 +1741,7 @@ def save_evidential_full_baseline_maps(classification_map, epistemic_map, aleato
     
     # Epistemic uncertainty map
     plt.figure(figsize=(10, 8))
-    plt.imshow(epistemic_map, cmap='plasma', interpolation='hamming')
+    plt.imshow(epistemic_map, cmap='plasma', interpolation='gaussian')
     plt.colorbar(label='Epistemic Uncertainty')
     plt.title(f'{model_prefix.title()} - Epistemic Uncertainty ({dataset_name})')
     plt.axis('off')
@@ -1750,7 +1750,7 @@ def save_evidential_full_baseline_maps(classification_map, epistemic_map, aleato
     
     # Aleatoric uncertainty map
     plt.figure(figsize=(10, 8))
-    plt.imshow(aleatoric_map, cmap='plasma', interpolation='hamming')
+    plt.imshow(aleatoric_map, cmap='plasma', interpolation='gaussian')
     plt.colorbar(label='Aleatoric Uncertainty')
     plt.title(f'{model_prefix.title()} - Aleatoric Uncertainty ({dataset_name})')
     plt.axis('off')
@@ -1759,7 +1759,7 @@ def save_evidential_full_baseline_maps(classification_map, epistemic_map, aleato
     
     # Total uncertainty map
     plt.figure(figsize=(10, 8))
-    plt.imshow(total_uncertainty_map, cmap='Purples_r', interpolation='hamming',)
+    plt.imshow(total_uncertainty_map, cmap='Purples_r', interpolation='gaussian',)
     plt.colorbar(label='Total Uncertainty')
     plt.title(f'{model_prefix.title()} - Total Uncertainty ({dataset_name})')
     plt.axis('off')
@@ -1790,7 +1790,7 @@ def save_evidential_full_maps(classification_map, epistemic_map, aleatoric_map,
     """
     # Classification map (non-defect probability)
     plt.figure(figsize=(10, 8))
-    plt.imshow(classification_map, cmap='Spectral', interpolation='hamming',)
+    plt.imshow(classification_map, cmap='Spectral', interpolation='gaussian',)
     plt.colorbar(label='Non-defect Probability')
     plt.title(f'Evidential Full - Classification ({dataset_name})')
     plt.axis('off')
@@ -1799,7 +1799,7 @@ def save_evidential_full_maps(classification_map, epistemic_map, aleatoric_map,
     
     # Epistemic uncertainty map
     plt.figure(figsize=(10, 8))
-    plt.imshow(epistemic_map, cmap='plasma', interpolation='hamming')
+    plt.imshow(epistemic_map, cmap='plasma', interpolation='gaussian')
     plt.colorbar(label='Epistemic Uncertainty')
     plt.title(f'Evidential Full - Epistemic Uncertainty ({dataset_name})')
     plt.axis('off')
@@ -1808,7 +1808,7 @@ def save_evidential_full_maps(classification_map, epistemic_map, aleatoric_map,
     
     # Aleatoric uncertainty map
     plt.figure(figsize=(10, 8))
-    plt.imshow(aleatoric_map, cmap='plasma', interpolation='hamming')
+    plt.imshow(aleatoric_map, cmap='plasma', interpolation='gaussian')
     plt.colorbar(label='Aleatoric Uncertainty')
     plt.title(f'Evidential Full - Aleatoric Uncertainty ({dataset_name})')
     plt.axis('off')
@@ -1817,7 +1817,7 @@ def save_evidential_full_maps(classification_map, epistemic_map, aleatoric_map,
     
     # Total uncertainty map
     plt.figure(figsize=(10, 8))
-    plt.imshow(total_uncertainty_map, cmap='Purples_r', interpolation='hamming')
+    plt.imshow(total_uncertainty_map, cmap='Purples_r', interpolation='gaussian')
     plt.colorbar(label='Total Uncertainty')
     plt.title(f'Evidential Full - Total Uncertainty ({dataset_name})')
     plt.axis('off')
@@ -2024,8 +2024,8 @@ def analyze_inference_results(results, dataset_name, experiment_name=None, model
 
 if __name__ == '__main__':
     # Configuration - easily changeable!
-    experiment_name = "evidential_transformer_v4_epoch_40_acc_96.7"  # Change this for different experiments
-    model_name = "evidential_transformer_v4_epoch_40_acc_96.7"  # Change this for different models
+    experiment_name = "evidential_transformer_v4_epoch_99_acc_97.5"  # Change this for different experiments
+    model_name = "evidential_transformer_v4_epoch_99_acc_97.5"  # Change this for different models
     model_path = f'weights/{model_name}.pth'
     
     print("=== Real-Time Evidential Uncertainty Analysis ===")
