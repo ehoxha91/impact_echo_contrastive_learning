@@ -1,0 +1,140 @@
+=== Analyzing DS3-2 Results ===
+Dataset: DS3-2
+DS3 Slab Analysis - 252 samples with 9×28 spatial arrangement (same as DS1)
+Test Accuracy: 39.68%
+Number of samples: 252
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 252
+Class distribution: No Defect: 80, Defect: 172
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 79           1           
+       Defect   60           112         
+
+=== Binary Classification Metrics ===
+True Positives (TP):   112
+True Negatives (TN):   79
+False Positives (FP):  1
+False Negatives (FN):  60
+
+=== Performance Metrics ===
+Overall Accuracy:      0.7579 (75.79%)
+Precision (PPV):       0.9912 (99.12%)
+Recall (Sensitivity):  0.6512 (65.12%)
+Specificity:           0.9875 (98.75%)
+Negative Pred. Value:  0.5683 (56.83%)
+F1 Score:              0.7860
+
+=== Error Rates ===
+False Positive Rate:   0.0125 (1.25%)
+False Negative Rate:   0.3488 (34.88%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.9875 (98.75%)
+Defect Detection Accuracy: 0.6512 (65.12%)
+
+Balanced Accuracy:     0.8193 (81.93%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.9912
+Sklearn Recall:        0.6512
+Sklearn F1:            0.7860
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       0.57      0.99      0.72        80
+      Defect       0.99      0.65      0.79       172
+
+    accuracy                           0.76       252
+   macro avg       0.78      0.82      0.75       252
+weighted avg       0.86      0.76      0.77       252
+
+Correct Predictions: 100/252
+
+=== Key Defect Detection Performance for DS3-2 ===
+Precision (Defect): 0.9912 (99.12%)
+Recall (Defect):    0.6512 (65.12%)
+F1-Score:           0.7860
+Specificity:        0.9875 (98.75%)
+Balanced Accuracy:  0.8193 (81.93%)
+
+=== Live Uncertainty Analysis for DS3-2 ===
+Total Uncertainty - Mean: 0.454531 ± 0.108001
+Epistemic Uncertainty - Mean: 0.064115 ± 0.021074
+Aleatoric Uncertainty - Mean: 0.390416 ± 0.090913
+Confidence - Mean: 0.812785 ± 0.097277
+
+
+=== Analyzing DS3-4 Results ===
+Dataset: DS3-4
+DS3 Slab Analysis - 252 samples with 9×28 spatial arrangement (same as DS1)
+Test Accuracy: 33.73%
+Number of samples: 252
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 252
+Class distribution: No Defect: 80, Defect: 172
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 62           18          
+       Defect   20           152         
+
+=== Binary Classification Metrics ===
+True Positives (TP):   152
+True Negatives (TN):   62
+False Positives (FP):  18
+False Negatives (FN):  20
+
+=== Performance Metrics ===
+Overall Accuracy:      0.8492 (84.92%)
+Precision (PPV):       0.8941 (89.41%)
+Recall (Sensitivity):  0.8837 (88.37%)
+Specificity:           0.7750 (77.50%)
+Negative Pred. Value:  0.7561 (75.61%)
+F1 Score:              0.8889
+
+=== Error Rates ===
+False Positive Rate:   0.2250 (22.50%)
+False Negative Rate:   0.1163 (11.63%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.7750 (77.50%)
+Defect Detection Accuracy: 0.8837 (88.37%)
+
+Balanced Accuracy:     0.8294 (82.94%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.8941
+Sklearn Recall:        0.8837
+Sklearn F1:            0.8889
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       0.76      0.78      0.77        80
+      Defect       0.89      0.88      0.89       172
+
+    accuracy                           0.85       252
+   macro avg       0.83      0.83      0.83       252
+weighted avg       0.85      0.85      0.85       252
+
+Correct Predictions: 214/252
+
+=== Key Defect Detection Performance for DS3-4 ===
+Precision (Defect): 0.8941 (89.41%)
+Recall (Defect):    0.8837 (88.37%)
+F1-Score:           0.8889
+Specificity:        0.7750 (77.50%)
+Balanced Accuracy:  0.8294 (82.94%)
+
+=== Live Uncertainty Analysis for DS3-4 ===
+Total Uncertainty - Mean: 0.439140 ± 0.105574
+Epistemic Uncertainty - Mean: 0.062048 ± 0.017765
+Aleatoric Uncertainty - Mean: 0.377091 ± 0.089385
+Confidence - Mean: 0.823693 ± 0.094644
