@@ -281,7 +281,7 @@ def evidential_loss(evidence, targets, epoch, annealing_coefficient=1.0, regular
     targets_one_hot = F.one_hot(targets, num_classes=num_classes).float()
     
     # Expected log-likelihood (first term)
-    expected_log_likelihood = torch.sum(targets_one_hot * (torch.digamma(alphas) - torch.digamma(alpha_sum)), dim=1)
+    expected_log_likelihood = -torch.sum(targets_one_hot * (torch.digamma(alphas) - torch.digamma(alpha_sum)), dim=1)
     
     # KL divergence regularization (second term)
     # KL divergence from uniform prior
@@ -291,7 +291,7 @@ def evidential_loss(evidence, targets, epoch, annealing_coefficient=1.0, regular
     annealing_factor = min(1.0, annealing_coefficient * epoch / 100.0)
     
     # Total loss: negative expected log-likelihood + regularized KL divergence
-    loss = -expected_log_likelihood + annealing_factor * regularization_coefficient * kl_div
+    loss = expected_log_likelihood + annealing_factor * regularization_coefficient * kl_div
     
     # Additional evidence regularization to prevent overconfidence
     # Penalize very high evidence values that are incorrect
@@ -442,7 +442,7 @@ if __name__ == '__main__':
     y_path = ['data/y_train.npy']
 
     epochs = 100
-    model_name = 'evidential_transformer_v4'
+    model_name = 'evidential_transformer_v5'
     batch_size = 128
     learning_rate = 0.0001 # Slightly lower LR for more stable training
     num_classes = 2

@@ -39,6 +39,748 @@ from train_evidential import EvidentialIENet
 default_experiment_name = "evidential_transformer_v4"
 default_model_name = "evidential_transformer_v4"
 
+def load_ds3_multi_slab_data_into_torch_tensor(device, X_path='data/X_overlayed_860.npy', y_path='data/y_overlayed.npy'):
+    """
+    Load DS3 data and split it into 4 separate slabs (DS3-1, DS3-2, DS3-3, DS3-4)
+    DS3 has 1008 samples = 4 slabs × 252 samples each
+    Each slab has the same spatial arrangement as DS1: 252 samples = 9×28 grid
+    """
+    import numpy as np
+    import torch
+    import array
+    
+    print("Loading DS3 multi-slab data...")
+    
+    # Load the full DS3 data
+    X_data = np.load(X_path)
+    y_data = np.flip((np.load(y_path))) if y_path else None
+
+    if y_data is not None:
+        y_data[y_data < 1] = 0
+        y_data[y_data > 0] = 1
+
+    print(f"Full DS3 data shape: X={X_data.shape}, y={y_data.shape if y_data is not None else 'None'}")
+    
+    # Verify DS3 has expected 1008 samples
+    total_samples = len(X_data)
+    expected_total = 1008
+    samples_per_slab = 252  # Each slab has same size as DS1
+    
+    if total_samples != expected_total:
+        print(f"Warning: Expected {expected_total} samples but found {total_samples}")
+        # Adjust samples per slab if total doesn't match expected
+        samples_per_slab = total_samples // 4
+        print(f"Using {samples_per_slab} samples per slab instead")
+    
+    # Convert to torch tensors
+    X_tensor = torch.tensor(X_data, dtype=torch.float32).to(device)
+    y_tensor = torch.tensor(np.copy(np.flip(np.load(y_path))), dtype=torch.long).to(device) if y_data is not None else None
+    
+    # Split into 4 slabs of 252 samples each
+    slabs = {}
+    for i in range(4):
+        start_idx = i * samples_per_slab
+        end_idx = (i + 1) * samples_per_slab
+        
+        # Ensure we don't exceed the data bounds
+        if end_idx > total_samples:
+            end_idx = total_samples
+        
+        slab_name = f"DS3-{i+1}"
+        X_slab = X_tensor[start_idx:end_idx]
+        y_slab = y_tensor[start_idx:end_idx] if y_tensor is not None else None
+        
+        slabs[slab_name] = {
+            'X': X_slab,
+            'y': y_slab,
+            'start_idx': start_idx,
+            'end_idx': end_idx,
+            'samples': end_idx - start_idx
+        }
+        
+        print(f"{slab_name}: samples {start_idx}-{end_idx-1} ({end_idx - start_idx} total) - Same as DS1 spatial arrangement")
+    
+    return slabs
+
+def ensure_binary_predictions(predictions):
+    """
+    Ensure predictions are binary (0, 1) by converting any class > 0 to 1
+    """
+    if hasattr(predictions, 'numpy'):
+        pred_array = predictions.numpy()
+    else:
+        pred_array = predictions
+    
+    # Convert to binary: 0 stays 0, anything > 0 becomes 1
+    binary_pred = np.copy(pred_array)
+    binary_pred[binary_pred > 0] = 1
+    return binary_pred
+
+def process_ds3_slab_with_dataloader(X_data, y_data, model, device, slab_name):
+    """
+    Alternative approach: Process DS3 slab using DataLoader (like DS1)
+    This ensures consistent tensor shapes and processing
+    """
+    print(f"Processing {slab_name} using DataLoader approach...")
+    
+    # Create a temporary dataset from the slab data
+    class TempDS3Dataset(torch.utils.data.Dataset):
+        def __init__(self, X_data, y_data):
+            self.X_data = X_data.cpu().numpy()
+            self.y_data = y_data.cpu().numpy() if y_data is not None else None
+            self.y_data[self.y_data > 0] = 1
+            self.y_data[self.y_data < 1] = 0
+            
+        def __len__(self):
+            return len(self.X_data)
+            
+        def __getitem__(self, idx):
+            X = torch.tensor(self.X_data[idx], dtype=torch.float32)
+            if self.y_data is not None:
+                y = torch.tensor(self.y_data[idx], dtype=torch.long)
+                return X, y
+            else:
+                return X, torch.tensor(0, dtype=torch.long)  # Dummy target
+    
+    # Create dataset and dataloader
+    temp_dataset = TempDS3Dataset(X_data, y_data)
+    temp_loader = DataLoader(dataset=temp_dataset, batch_size=32, shuffle=False, num_workers=2)
+    
+    # Use the same evaluation function as DS1
+    (accuracy, predictions, total_unc, epistemic_unc, 
+     aleatoric_unc, confidences, targets, alphas) = evaluate_full_evidential_model(model, temp_loader, device)
+    
+    return accuracy, predictions, total_unc, epistemic_unc, aleatoric_unc, confidences, targets, alphas
+
+def process_ds3_slab_in_batches(X_data, y_data, model, device, slab_name, batch_size=32):
+    """
+    Process DS3 slab in smaller batches to avoid memory issues
+    """
+    print(f"Processing {slab_name} in batches of {batch_size}...")
+    
+    n_samples = len(X_data)
+    all_predictions = []
+    all_epistemic = []
+    all_aleatoric = []
+    all_total_unc = []
+    all_confidences = []
+    all_alphas = []
+    
+    model.eval()
+    correct = 0
+    total = 0
+    
+    with torch.no_grad():
+        for i in range(0, n_samples, batch_size):
+            end_idx = min(i + batch_size, n_samples)
+            batch_X = X_data[i:end_idx]
+            batch_y = y_data[i:end_idx] if y_data is not None else None
+            
+            # Ensure correct shape: [batch_size, 1, feature_size]
+            batch_X = batch_X.view(batch_X.size(0), 1, batch_X.size(1))
+            
+            # Get predictions
+            prob, epistemic, aleatoric, total_unc, confidence, alpha_sum = model.predict_with_uncertainty(batch_X)
+            
+            # Calculate accuracy for this batch
+            if batch_y is not None:
+                predicted = torch.argmax(prob.squeeze(0), dim=1)
+                correct += (predicted == batch_y).sum().item()
+                total += batch_y.size(0)
+            
+            # Collect results
+            all_predictions.append(prob)
+            all_epistemic.append(epistemic)
+            all_aleatoric.append(aleatoric)
+            all_total_unc.append(total_unc)
+            all_confidences.append(confidence)
+            all_alphas.append(alpha_sum)
+    
+    # Concatenate all results
+    predictions = torch.cat(all_predictions, dim=1)  # Concatenate along sample dimension
+    epistemic_unc = torch.cat(all_epistemic, dim=1)
+    aleatoric_unc = torch.cat(all_aleatoric, dim=1)
+    total_uncertainties = torch.cat(all_total_unc, dim=1)
+    alphas = torch.cat(all_alphas, dim=1)
+    confidences = torch.cat(all_confidences, dim=0)  # These are 1D
+    
+    # Calculate final accuracy
+    accuracy = 100.0 * correct / total if total > 0 else 0.0
+    
+    # Create targets tensor
+    targets = y_data if y_data is not None else torch.zeros(n_samples, dtype=torch.long)
+    
+    return accuracy, predictions, total_uncertainties, epistemic_unc, aleatoric_unc, confidences, targets, alphas
+
+def test_full_evidential_model_on_datasets_single_batch(model_path):
+    """
+    Process DS3 slabs as single batches to avoid concatenation issues
+    """
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    
+    # Load model
+    model = create_model().to(device)
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.eval()
+    print(f"Loaded full evidential model from {model_path}")
+    
+    # Enhanced test datasets
+    datasets = [
+        {'name': 'DS1 Test', 'X_path': 'data/X_test_860.npy', 'y_path': 'data/y_test.npy'},
+        {'name': 'DS3-1', 'X_path': 'data/X_overlayed_860.npy', 'y_path': 'data/y_overlayed.npy', 'slab_idx': 0},
+        {'name': 'DS3-2', 'X_path': 'data/X_overlayed_860.npy', 'y_path': 'data/y_overlayed.npy', 'slab_idx': 1},
+        {'name': 'DS3-3', 'X_path': 'data/X_overlayed_860.npy', 'y_path': 'data/y_overlayed.npy', 'slab_idx': 2},
+        {'name': 'DS3-4', 'X_path': 'data/X_overlayed_860.npy', 'y_path': 'data/y_overlayed.npy', 'slab_idx': 3},
+        {'name': 'CCNY May 2022', 'X_path': 'data/X_our_slab_size860.npy', 'y_path': None},
+        {'name': 'CCNY June 2022', 'X_path': 'data/X_our_slab_size860.npy', 'y_path': None},
+        {'name': 'CCNY Nov 2023', 'X_path': 'data/nov2023_non_resampled.npy', 'y_path': None},
+    ]
+    
+    results = {}
+    ds3_slabs = None
+    
+    for dataset_info in datasets:
+        dataset_name = dataset_info['name']
+        X_path = dataset_info['X_path']
+        y_path = dataset_info['y_path']
+        
+        print(f"\n=== Testing on {dataset_name} ===")
+        
+        try:
+            # Handle DS3 slabs as SINGLE BATCH (no DataLoader)
+            if 'DS3-' in dataset_name:
+                slab_idx = dataset_info['slab_idx']
+                
+                # Load DS3 slabs only once
+                if ds3_slabs is None:
+                    ds3_slabs = load_ds3_multi_slab_data_into_torch_tensor(device, X_path, y_path)
+                
+                # Get the specific slab
+                slab_name = f"DS3-{slab_idx+1}"
+                slab_data = ds3_slabs[slab_name]
+                X_data = slab_data['X']
+                y_data = slab_data['y']
+                
+                print(f"Testing DS3 slab {slab_idx+1}: {slab_data['samples']} samples (single batch)")
+                print(f"Original X_data shape: {X_data.shape}")
+                
+                # Reshape for model: [252, 860] -> [252, 1, 860]
+                X_data = X_data.view(X_data.size(0), 1, X_data.size(1))
+                print(f"Reshaped X_data shape: {X_data.shape}")
+                
+                # Process as single batch
+                with torch.no_grad():
+                    prob, epistemic, aleatoric, total_unc, confidence, alpha_sum = model.predict_with_uncertainty(X_data)
+                
+                # Calculate accuracy
+                if y_data is not None:
+                    predicted = torch.argmax(prob.squeeze(0), dim=1)
+                    accuracy = (predicted == y_data).float().mean().item() * 100
+                    targets = y_data
+                else:
+                    accuracy = 0.0
+                    targets = torch.zeros(len(X_data), dtype=torch.long)
+                
+                # Format outputs
+                predictions = prob
+                epistemic_unc = epistemic
+                aleatoric_unc = aleatoric
+                total_unc = total_unc
+                alphas = alpha_sum
+                confidences = confidence.unsqueeze(0) if confidence.dim() == 1 else confidence
+                
+            elif y_path is not None:
+                # Handle DS1 with FIXED evaluation function
+                test_dataset = ImpactEchoDatasetClassifier([X_path], y_path=[y_path], array_size=860)
+                test_loader = DataLoader(dataset=test_dataset, batch_size=32, shuffle=False, num_workers=2)
+                print(f"Testing supervised dataset on {len(test_dataset)} samples...")
+                
+                # Use FIXED evaluation function
+                (accuracy, predictions, total_unc, epistemic_unc, 
+                 aleatoric_unc, confidences, targets, alphas) = evaluate_full_evidential_model(model, test_loader, device)
+                
+            else:
+                # Handle unsupervised datasets (CCNY) - unchanged
+                print(f"Testing unsupervised dataset: {dataset_name}")
+                
+                if 'May' in dataset_name or 'June' in dataset_name:
+                    X_may, X_june = load_ccny_sep2022_data_into_torch_tensor(device, X_path)
+                    X_data = X_may if 'May' in dataset_name else X_june
+                    print(f"Testing CCNY {dataset_name.split()[-2]} data: {len(X_data)} samples")
+                elif 'Nov' in dataset_name:
+                    X_data = load_ccny_nov2023_data_into_torch_tensor2(device=device, X_path=X_path)
+                    print(f"Testing CCNY Nov 2023 data: {len(X_data)} samples")
+                else:
+                    print(f"Skipping unknown unsupervised dataset: {dataset_name}")
+                    continue
+                
+                # Get predictions for unsupervised data
+                with torch.no_grad():
+                    prob, epistemic, aleatoric, total_unc, confidence, alpha_sum = model.predict_with_uncertainty(X_data)
+                
+                targets = torch.zeros(len(X_data), dtype=torch.long)
+                accuracy = 0.0
+                predictions = prob
+                epistemic_unc = epistemic
+                aleatoric_unc = aleatoric
+                total_unc = total_unc
+                alphas = alpha_sum
+                confidences = confidence.unsqueeze(0) if confidence.dim() == 1 else confidence
+            
+            # Print results
+            if y_path is not None or 'DS3-' in dataset_name:
+                print(f"Accuracy: {accuracy:.2f}%")
+            else:
+                print("Unsupervised dataset - no accuracy calculated")
+            
+            print(f"Mean Total Uncertainty: {total_unc.mean():.6f}")
+            print(f"Mean Epistemic Uncertainty: {epistemic_unc.mean():.6f}")
+            print(f"Mean Aleatoric Uncertainty: {aleatoric_unc.mean():.6f}")
+            print(f"Mean Confidence: {confidences.mean():.6f}")
+            print(f"Mean Evidence Strength: {alphas.mean():.6f}")
+            
+            results[dataset_name] = {
+                'accuracy': accuracy,
+                'predictions': predictions,
+                'total_uncertainties': total_unc,
+                'epistemic_uncertainties': epistemic_unc,
+                'aleatoric_uncertainties': aleatoric_unc,
+                'confidences': confidences,
+                'targets': targets,
+                'alphas': alphas
+            }
+            
+        except FileNotFoundError as e:
+            print(f"Dataset not found for {dataset_name}: {e}")
+            continue
+        except Exception as e:
+            print(f"Error processing {dataset_name}: {e}")
+            import traceback
+            traceback.print_exc()
+            continue
+    
+    return results
+
+def create_enhanced_multi_dataset_comparison_figure(dataset_results, experiment_name=None, model_name=None):
+    """
+    Enhanced version that shows all 4 DS3 slabs plus other datasets
+    Creates a comprehensive figure with DS1, DS3-1, DS3-2, DS3-3, DS3-4, CCNY datasets
+    Each DS3 slab has 252 samples with 9×28 spatial arrangement (same as DS1)
+    """
+    if experiment_name is None:
+        experiment_name = default_experiment_name
+    if model_name is None:
+        model_name = default_model_name
+    
+    print(f"\n🎨 Creating enhanced multi-dataset comparison figure with all DS3 slabs...")
+    
+    # Enhanced dataset mapping with all DS3 slabs (each slab has same spatial arrangement as DS1)
+    dataset_info = {
+        'DS1 Test': {'shape': (9, 28), 'samples': 252, 'title': 'DS1 (Test Data)', 'row': 0},
+        'DS3-1': {'shape': (9, 28), 'samples': 252, 'title': 'DS3-1 (Slab 1)', 'row': 1},
+        'DS3-2': {'shape': (9, 28), 'samples': 252, 'title': 'DS3-2 (Slab 2)', 'row': 2},
+        'DS3-3': {'shape': (9, 28), 'samples': 252, 'title': 'DS3-3 (Slab 3)', 'row': 3},
+        'DS3-4': {'shape': (9, 28), 'samples': 252, 'title': 'DS3-4 (Slab 4)', 'row': 4},
+        'CCNY May 2022': {'shape': (31, 38), 'samples': 1178, 'title': 'DS4 (CCNY May)', 'row': 5},
+        'CCNY June 2022': {'shape': (19, 34), 'samples': 646, 'title': 'DS5 (CCNY June)', 'row': 6},
+        'CCNY Nov 2023': {'shape': (44, 34), 'samples': 1496, 'title': 'DS6 (CCNY Nov)', 'row': 7}
+    }
+    
+    # Determine number of rows based on available datasets
+    available_datasets = [name for name in dataset_info.keys() if name in dataset_results]
+    num_rows = len(available_datasets)
+    
+    if num_rows == 0:
+        print("❌ No datasets found in results!")
+        return None
+    
+    # Create enhanced figure (num_rows x 2)
+    fig, axes = plt.subplots(num_rows, 2, figsize=(16, 4*num_rows))
+    fig.suptitle('Enhanced Multi-Dataset Comparison: All DS3 Slabs + Other Datasets\nEvidential IENet Results', 
+                fontsize=16, fontweight='bold', y=0.98)
+    
+    # Handle single row case
+    if num_rows == 1:
+        axes = axes.reshape(1, -1)
+    
+    dataset_count = 0
+    row_idx = 0
+    
+    for dataset_name in available_datasets:
+        if dataset_name not in dataset_results:
+            continue
+            
+        results = dataset_results[dataset_name]
+        info = dataset_info[dataset_name]
+        shape = info['shape']
+        title = info['title']
+        
+        print(f"  Processing {title} (Shape: {shape[0]}×{shape[1]})...")
+        
+        try:
+            # Extract data from results
+            predictions = results['predictions']
+            total_unc = results['total_uncertainties']
+            
+            # Convert to numpy and get proper shapes
+            pred_probs = predictions.squeeze(0).cpu().numpy()
+            total_unc_np = total_unc.squeeze(0).squeeze(-1).cpu().numpy()
+            
+            # Get non-defect probability (class 0) for visualization
+            if pred_probs.ndim > 1 and pred_probs.shape[1] > 1:
+                non_defect_prob = pred_probs[:, 0]
+            else:
+                non_defect_prob = pred_probs.flatten()
+            
+            n_samples = len(non_defect_prob)
+            expected_samples = shape[0] * shape[1]
+            
+            print(f"    Data: {n_samples} samples, expected: {expected_samples}")
+            
+            # Handle size mismatch
+            if n_samples != expected_samples:
+                if n_samples < expected_samples:
+                    pad_size = expected_samples - n_samples
+                    non_defect_prob = np.pad(non_defect_prob, (0, pad_size), mode='constant', constant_values=np.nan)
+                    total_unc_np = np.pad(total_unc_np, (0, pad_size), mode='constant', constant_values=np.nan)
+                else:
+                    non_defect_prob = non_defect_prob[:expected_samples]
+                    total_unc_np = total_unc_np[:expected_samples]
+            
+            # Reshape to spatial grids
+            prob_map = non_defect_prob.reshape(shape)
+            uncertainty_map = total_unc_np.reshape(shape)
+            
+            # Column 1: Prediction Probability Map
+            im1 = axes[row_idx, 0].imshow(prob_map, cmap='Spectral', interpolation='gaussian', aspect='equal')
+            axes[row_idx, 0].set_title(f'{title}\nPrediction Probability (Non-Defect)', fontsize=12, fontweight='bold')
+            axes[row_idx, 0].set_xlabel('Spatial X Position')
+            axes[row_idx, 0].set_ylabel('Spatial Y Position')
+            
+            # Add colorbar
+            cbar1 = plt.colorbar(im1, ax=axes[row_idx, 0], shrink=0.8)
+            cbar1.set_label('Non-Defect Probability', fontsize=10)
+            
+            # Column 2: Total Uncertainty Map
+            im2 = axes[row_idx, 1].imshow(uncertainty_map, cmap='plasma', interpolation='gaussian', aspect='equal')
+            axes[row_idx, 1].set_title(f'{title}\nTotal Uncertainty', fontsize=12, fontweight='bold')
+            axes[row_idx, 1].set_xlabel('Spatial X Position')
+            axes[row_idx, 1].set_ylabel('Spatial Y Position')
+            
+            # Add colorbar
+            cbar2 = plt.colorbar(im2, ax=axes[row_idx, 1], shrink=0.8)
+            cbar2.set_label('Total Uncertainty', fontsize=10)
+            
+            # Add dataset statistics
+            mean_prob = np.nanmean(non_defect_prob)
+            mean_unc = np.nanmean(total_unc_np)
+            std_unc = np.nanstd(total_unc_np)
+            
+            stats_text = f"μ_prob={mean_prob:.3f}, μ_unc={mean_unc:.4f}±{std_unc:.4f}"
+            
+            # Add statistics text for each row
+            y_pos = 0.95 - (row_idx / max(num_rows, 1)) * 0.85
+            fig.text(0.5, y_pos, stats_text, ha='center', fontsize=9, 
+                    bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray", alpha=0.7))
+            
+            dataset_count += 1
+            row_idx += 1
+            print(f"    ✓ {title} processed successfully")
+            
+        except Exception as e:
+            print(f"    ❌ Error processing {title}: {e}")
+            # Fill with placeholder text if data processing fails
+            axes[row_idx, 0].text(0.5, 0.5, f'{title}\nData Not Available', 
+                                ha='center', va='center', transform=axes[row_idx, 0].transAxes,
+                                fontsize=12, bbox=dict(boxstyle="round,pad=0.3", facecolor="lightcoral"))
+            axes[row_idx, 1].text(0.5, 0.5, f'{title}\nData Not Available', 
+                                ha='center', va='center', transform=axes[row_idx, 1].transAxes,
+                                fontsize=12, bbox=dict(boxstyle="round,pad=0.3", facecolor="lightcoral"))
+            axes[row_idx, 0].set_xticks([])
+            axes[row_idx, 0].set_yticks([])
+            axes[row_idx, 1].set_xticks([])
+            axes[row_idx, 1].set_yticks([])
+            row_idx += 1
+            continue
+    
+    # Add column headers
+    axes[0, 0].text(0.5, 1.15, 'Prediction Probability Maps', ha='center', va='bottom', 
+                   transform=axes[0, 0].transAxes, fontsize=14, fontweight='bold')
+    axes[0, 1].text(0.5, 1.15, 'Total Uncertainty Maps', ha='center', va='bottom', 
+                   transform=axes[0, 1].transAxes, fontsize=14, fontweight='bold')
+    
+    # Add overall figure description
+    description = f"""
+Enhanced Multi-Dataset Evidential IENet Results
+• Left Column: Prediction probability for non-defect class (higher = more confident non-defect)
+• Right Column: Total uncertainty (epistemic + aleatoric, higher = more uncertain)
+• DS1 & DS3 slabs: 252 samples each with 9×28 spatial arrangement
+• CCNY datasets: Various spatial arrangements (May: 31×38, June: 19×34, Nov: 44×34)
+• Processed datasets: {dataset_count} total (including {sum(1 for name in available_datasets if 'DS3-' in name)} DS3 slabs)
+    """
+    
+    fig.text(0.02, 0.02, description.strip(), fontsize=10, 
+            bbox=dict(boxstyle="round,pad=0.5", facecolor="lightblue", alpha=0.8))
+    
+    # Adjust layout to prevent overlap
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.94, bottom=0.15, hspace=0.3, wspace=0.3)
+    
+    # Save the enhanced multi-dataset comparison figure
+    comparison_filename = f'{model_name}_enhanced_multi_dataset_comparison.png'
+    plt.savefig(f'new_uncertainty_results/{experiment_name}/{comparison_filename}', 
+                dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"✅ Enhanced multi-dataset comparison figure saved: {comparison_filename}")
+    print(f"  ✓ Shows: Prediction Probability | Total Uncertainty for {dataset_count} datasets")
+    print(f"  ✓ DS3 slabs: {sum(1 for name in available_datasets if 'DS3-' in name)} individual slabs processed")
+    print(f"  ✓ Each DS3 slab: 252 samples with 9×28 spatial arrangement (same as DS1)")
+    print(f"  ✓ File: new_uncertainty_results/{experiment_name}/{comparison_filename}")
+    
+    return comparison_filename
+
+
+def analyze_inference_results_enhanced(results, dataset_name, experiment_name=None, model_name=None):
+    """
+    Enhanced analysis that handles DS3 slabs with proper spatial arrangements
+    Each DS3 slab has 252 samples with 9×28 spatial arrangement (same as DS1)
+    """
+    predictions = results['predictions']
+    total_unc = results['total_uncertainties']
+    epistemic_unc = results['epistemic_uncertainties']
+    aleatoric_unc = results['aleatoric_uncertainties']
+    confidences = results['confidences']
+    alphas = results['alphas']
+    targets = results['targets']
+    targets[targets>0] = 1
+    targets[targets<1] = 0
+    accuracy = results['accuracy']
+    
+    print(f"Dataset: {dataset_name}")
+    if 'DS3-' in dataset_name:
+        print(f"DS3 Slab Analysis - 252 samples with 9×28 spatial arrangement (same as DS1)")
+    print(f"Test Accuracy: {accuracy:.2f}%")
+    print(f"Number of samples: {len(targets)}")
+    
+    # Extract predictions for analysis
+    pred_probs = predictions.squeeze(0)  # Remove sequence dim
+    pred_classes = torch.argmax(pred_probs, dim=1)
+    
+    # Remove extra dimensions (handle both supervised and unsupervised data)
+    epistemic_unc = epistemic_unc.squeeze(0).squeeze(-1) if epistemic_unc.dim() > 1 else epistemic_unc.squeeze(0)
+    aleatoric_unc = aleatoric_unc.squeeze(0).squeeze(-1) if aleatoric_unc.dim() > 1 else aleatoric_unc.squeeze(0)
+    total_unc = total_unc.squeeze(0).squeeze(-1) if total_unc.dim() > 1 else total_unc.squeeze(0)
+    alphas = alphas.squeeze(0).squeeze(-1) if alphas.dim() > 1 else alphas.squeeze(0)
+    
+    # Handle confidence tensor
+    if confidences.dim() > 1:
+        confidences = confidences.squeeze(0)
+    
+    # Convert to numpy for plotting
+    epistemic_unc_np = epistemic_unc.detach().cpu().numpy()
+    aleatoric_unc_np = aleatoric_unc.detach().cpu().numpy()
+    total_unc_np = total_unc.detach().cpu().numpy()
+    alphas_np = alphas.detach().cpu().numpy()
+    confidences_np = confidences.detach().cpu().numpy()
+    pred_classes_np = pred_classes.detach().cpu().numpy()
+    targets_np = targets.detach().cpu().numpy()
+    pred_probs_np = pred_probs.detach().cpu().numpy()
+    
+    # Classification metrics
+    if pred_classes_np.shape != targets_np.shape:
+        print(f"Warning: Shape mismatch! pred_classes: {pred_classes_np.shape}, targets: {targets_np.shape}")
+        if accuracy == 0.0:  # Unsupervised dataset
+            correct_predictions = np.ones(len(pred_classes_np), dtype=bool)
+            print("Using dummy correct_predictions for unsupervised dataset")
+            detailed_metrics = {}
+        else:
+            correct_predictions = (pred_classes_np == targets_np)
+            detailed_metrics = calculate_detailed_accuracy_metrics(pred_classes_np, targets_np)
+    else:
+        correct_predictions = (pred_classes_np == targets_np)
+        detailed_metrics = calculate_detailed_accuracy_metrics(pred_classes_np, targets_np)
+    
+    print(f"Correct Predictions: {correct_predictions.sum()}/{len(correct_predictions)}")
+    
+    # Display summary of key metrics if available
+    if detailed_metrics and accuracy > 0.0:
+        print(f"\n=== Key Defect Detection Performance for {dataset_name} ===")
+        print(f"Precision (Defect): {detailed_metrics['precision']:.4f} ({detailed_metrics['precision']*100:.2f}%)")
+        print(f"Recall (Defect):    {detailed_metrics['recall']:.4f} ({detailed_metrics['recall']*100:.2f}%)")
+        print(f"F1-Score:           {detailed_metrics['f1_score']:.4f}")
+        print(f"Specificity:        {detailed_metrics['specificity']:.4f} ({detailed_metrics['specificity']*100:.2f}%)")
+        print(f"Balanced Accuracy:  {detailed_metrics['balanced_accuracy']:.4f} ({detailed_metrics['balanced_accuracy']*100:.2f}%)")
+    
+    # Print uncertainty statistics
+    print(f"\n=== Live Uncertainty Analysis for {dataset_name} ===")
+    print(f"Total Uncertainty - Mean: {np.mean(total_unc_np):.6f} ± {np.std(total_unc_np):.6f}")
+    print(f"Epistemic Uncertainty - Mean: {np.mean(epistemic_unc_np):.6f} ± {np.std(epistemic_unc_np):.6f}")
+    print(f"Aleatoric Uncertainty - Mean: {np.mean(aleatoric_unc_np):.6f} ± {np.std(aleatoric_unc_np):.6f}")
+    print(f"Confidence - Mean: {np.mean(confidences_np):.6f} ± {np.std(confidences_np):.6f}")
+    
+    # Create beautiful visualizations with dataset-specific naming
+    print(f"\n🎨 Creating beautiful visualizations for {dataset_name}...")
+    
+    # 1. Generate individual baseline-style defect maps (ALWAYS generate for all datasets!)
+    create_individual_defect_maps(
+        pred_probs_np, epistemic_unc_np.squeeze(), aleatoric_unc_np.squeeze(),
+        total_unc_np.squeeze(), confidences_np, alphas_np.squeeze(), dataset_name,
+        experiment_name, model_name
+    )
+    
+    # 2. Comprehensive spatial uncertainty maps (2x3 grid)
+    create_spatial_uncertainty_maps(
+        pred_probs_np, epistemic_unc_np.squeeze(), aleatoric_unc_np.squeeze(), 
+        total_unc_np.squeeze(), confidences_np, alphas_np.squeeze(), targets_np, dataset_name,
+        experiment_name, model_name
+    )
+    
+    # 3. Special analysis for DS1 and DS3 slabs (same spatial arrangement)
+    if 'DS1' in dataset_name or 'DS3-' in dataset_name:
+        print(f"  📊 Creating comprehensive analysis for {dataset_name} (DS1/DS3 slab)...")
+        
+        # Advanced uncertainty distribution analysis
+        create_advanced_uncertainty_distribution_analysis(
+            pred_probs_np, epistemic_unc_np, aleatoric_unc_np, total_unc_np, 
+            confidences_np, alphas_np, targets_np, correct_predictions,
+            experiment_name, model_name
+        )
+        
+        # Comprehensive 9-subplot analysis
+        create_full_evidential_plots(
+            pred_probs_np, epistemic_unc_np, aleatoric_unc_np, total_unc_np, 
+            confidences_np, alphas_np, targets_np, correct_predictions,
+            experiment_name, model_name
+        )
+        
+        # Advanced correlation analysis
+        create_advanced_uncertainty_correlations(
+            epistemic_unc_np, aleatoric_unc_np, total_unc_np, 
+            confidences_np, alphas_np, correct_predictions,
+            experiment_name, model_name
+        )
+        
+        # Special DS1/DS3 comparison figure (if we have ground truth)
+        if len(targets_np) > 0 and accuracy > 0.0:
+            create_ds1_comparison_figure(
+                f'{dataset_name}_comparison_figure', targets_np, pred_classes_np, pred_probs_np, total_unc_np.squeeze(),
+                epistemic_unc_np.squeeze(), dataset_name, experiment_name, model_name
+            )
+    else:
+        print(f"  ⏭️  Skipping comprehensive analysis for {dataset_name} (CCNY dataset)")
+    
+    print(f"✓ Beautiful analysis complete for {dataset_name}!")
+
+
+def run_inference_time_uncertainty_analysis_enhanced(model_path='weights/evidential_full_v2.pth', 
+                                                   experiment_name=None, model_name=None):
+    """
+    Enhanced version that includes all 4 DS3 slabs in the analysis
+    """
+    print("=== Enhanced Real-Time Evidential Uncertainty Analysis ===")
+    print("🚀 Generating beautiful uncertainty visualizations for all DS3 slabs during inference...\n")
+    
+    try:
+        # Test model on datasets and get fresh results (including all DS3 slabs)
+        print("1. Running inference on test datasets (including all DS3 slabs)...")
+        dataset_results = test_full_evidential_model_on_datasets_single_batch(model_path)
+        
+        if dataset_results:
+            print("✓ Inference complete! Now generating enhanced analysis...\n")
+            
+            # Analyze the fresh results from inference
+            for dataset_name, results in dataset_results.items():
+                print(f"\n=== Analyzing {dataset_name} Results ===")
+                
+                # Use enhanced analysis function
+                analyze_inference_results_enhanced(results, dataset_name, experiment_name, model_name)
+            
+            # Create enhanced multi-dataset comparison figure
+            print("\n🎨 Creating enhanced multi-dataset comparison figure...")
+            create_enhanced_multi_dataset_comparison_figure(dataset_results, experiment_name, model_name)
+            
+            # Save the fresh inference results
+            if model_name is None:
+                model_name = default_model_name
+            
+            results_filename = f'weights/{model_name}_enhanced_inference_results.pth'
+            torch.save(dataset_results, results_filename)
+            print(f"✓ Enhanced inference results saved to {results_filename}")
+            
+        else:
+            print("❌ No inference results generated - check model file")
+            
+    except FileNotFoundError:
+        print(f"❌ Model file not found: {model_path}")
+        print("Please ensure the evidential model exists or provide correct path")
+        return False
+    
+    return True
+
+
+# Update the original functions to handle DS3 slabs properly
+def update_original_functions_for_ds3_slabs():
+    """
+    Update the existing spatial mapping function to handle DS3 slabs
+    """
+    # This updates the existing create_spatial_uncertainty_maps function
+    # to properly recognize DS3 slabs as having 252 samples with 9×28 arrangement
+    pass
+
+# Enhanced main execution function
+def main_enhanced_analysis():
+    """
+    Main function to run the enhanced analysis with all DS3 slabs
+    """
+    # Configuration - easily changeable!
+    experiment_name = "evidential_transformer_v4_enhanced"  # Enhanced experiment name
+    model_name = "evidential_transformer_v4"
+    model_path = f'weights/{model_name}.pth'
+    
+    print("=== Enhanced Real-Time Evidential Uncertainty Analysis ===")
+    print(f"🚀 Running enhanced experiment: {experiment_name} with model: {model_name}")
+    print("🚀 Generating analysis for DS1 + all 4 DS3 slabs + CCNY datasets!\n")
+    
+    # Create experiment directory
+    import os
+    os.makedirs(f'new_uncertainty_results/{experiment_name}', exist_ok=True)
+    
+    # Run the enhanced inference-time analysis
+    success = run_inference_time_uncertainty_analysis_enhanced(model_path, experiment_name, model_name)
+    
+    if not success:
+        print("\n🔄 Trying alternative model paths...")
+        alternative_paths = [
+            f'new_uncertainty_results/weights/{model_name}.pth',
+            'weights/evidential_simple.pth',
+            'weights/evidential.pth',
+            'weights/evidential_full.pth'
+        ]
+        
+        for alt_path in alternative_paths:
+            print(f"Trying: {alt_path}")
+            if run_inference_time_uncertainty_analysis_enhanced(alt_path, experiment_name, model_name):
+                success = True
+                break
+    
+    if success:
+        print("\n=== Enhanced Analysis Complete ===")
+        print("✓ All beautiful uncertainty visualizations completed successfully!")
+        print(f"\n📁 Generated Enhanced Analysis Files for experiment: {experiment_name}")
+        print(f"✓ DS1 Test: Complete analysis with 252 samples (9×28 spatial arrangement)")
+        print(f"✓ DS3-1: Complete analysis with 252 samples (9×28 spatial arrangement)")
+        print(f"✓ DS3-2: Complete analysis with 252 samples (9×28 spatial arrangement)")
+        print(f"✓ DS3-3: Complete analysis with 252 samples (9×28 spatial arrangement)")
+        print(f"✓ DS3-4: Complete analysis with 252 samples (9×28 spatial arrangement)")
+        print(f"✓ CCNY datasets: May (31×38), June (19×34), Nov (44×34)")
+        print(f"✓ Enhanced multi-dataset comparison: {model_name}_enhanced_multi_dataset_comparison.png")
+        print(f"✓ Individual defect maps generated for each dataset and slab")
+        print(f"✓ Enhanced inference results saved: weights/{model_name}_enhanced_inference_results.pth")
+    else:
+        print("\n❌ No evidential models found. Please train a model first.")
+    
+    return success
 
 def calculate_detailed_accuracy_metrics(pred_classes, targets, class_names=None):
     """
@@ -59,10 +801,12 @@ def calculate_detailed_accuracy_metrics(pred_classes, targets, class_names=None)
     targets = targets.flatten()
     
     # Remove any samples with invalid targets (e.g., -1 for padding)
+    targets[targets > 0] = 1
+    targets[targets < 1] = 0
     valid_mask = targets >= 0
     pred_classes = pred_classes[valid_mask]
     targets = targets[valid_mask]
-    
+
     if len(targets) == 0:
         print("Warning: No valid targets found for accuracy calculation")
         return None
@@ -202,7 +946,7 @@ def create_multi_dataset_comparison_figure(dataset_results, experiment_name=None
     
     # Create 4x2 figure (4 datasets x 2 maps each)
     fig, axes = plt.subplots(4, 2, figsize=(16, 20))
-    fig.suptitle('Multi-Dataset Comparison: Prediction Probability vs Total Uncertainty\nEvidential Deep Learning Results', 
+    fig.suptitle('Multi-Dataset Comparison: Prediction Probability vs Total Uncertainty\nEvidential IENet Results', 
                 fontsize=16, fontweight='bold', y=0.98)
     
     dataset_count = 0
@@ -229,7 +973,7 @@ def create_multi_dataset_comparison_figure(dataset_results, experiment_name=None
             
             # Get non-defect probability (class 0) for visualization
             if pred_probs.ndim > 1 and pred_probs.shape[1] > 1:
-                non_defect_prob = pred_probs[:, 0]  # Probability of class 0 (non-defect)
+                non_defect_prob = pred_probs[:, 1]  # Probability of class 0 (non-defect)
             else:
                 non_defect_prob = pred_probs.flatten()
             
@@ -314,7 +1058,7 @@ def create_multi_dataset_comparison_figure(dataset_results, experiment_name=None
     
     # Add overall figure description
     description = f"""
-Multi-Dataset Evidential Deep Learning Results
+Multi-Dataset Evidential IENet Results
 • Left Column: Prediction probability for non-defect class (higher = more confident non-defect)
 • Right Column: Total uncertainty (epistemic + aleatoric, higher = more uncertain)
 • Each row represents a different test dataset with its specific spatial arrangement
@@ -343,7 +1087,7 @@ Multi-Dataset Evidential Deep Learning Results
 
 def analyze_full_evidential_results(results_path):
     """
-    Analyze and visualize full evidential deep learning results with comprehensive metrics
+    Analyze and visualize full Evidential IENet results with comprehensive metrics
     """
     print(f"Loading results from {results_path}")
     results = torch.load(results_path, map_location='cpu')
@@ -355,6 +1099,8 @@ def analyze_full_evidential_results(results_path):
     confidences = results['confidences']
     alphas = results['alphas']
     targets = results['targets']
+    targets[targets > 0] = 1
+    targets[targets < 1] = 0
     accuracy = results['accuracy']
     
     print(f"Test Accuracy: {accuracy:.2f}%")
@@ -378,6 +1124,8 @@ def analyze_full_evidential_results(results_path):
     confidences_np = confidences.detach().cpu().numpy()
     pred_classes_np = pred_classes.detach().cpu().numpy()
     targets_np = targets.detach().cpu().numpy()
+    targets_np[targets_np>0] = 1
+    targets_np[targets_np<1] = 0
     pred_probs_np = pred_probs.detach().cpu().numpy()
     
     # Classification metrics
@@ -681,7 +1429,7 @@ def create_full_evidential_plots(pred_probs, epistemic_unc, aleatoric_unc, total
     sns.set_palette("husl")
     
     fig, axes = plt.subplots(3, 3, figsize=(20, 18))
-    fig.suptitle('Evidential Deep Learning - Comprehensive Uncertainty Analysis', fontsize=20, fontweight='bold')
+    fig.suptitle('Evidential IENet - Comprehensive Uncertainty Analysis', fontsize=20, fontweight='bold')
     
     # Plot 1: Epistemic vs Aleatoric Uncertainty
     axes[0, 0].scatter(epistemic_unc[correct_predictions], aleatoric_unc[correct_predictions], 
@@ -1190,7 +1938,7 @@ def create_spatial_uncertainty_maps(pred_probs, epistemic_unc, aleatoric_unc, to
     dataset_shapes = {
         # DS1 and DS3 datasets (same spatial arrangement)
         252: (9, 28),           # DS1: 252 samples = 9×28 spatial grid
-        256: (9, 28),           # DS3 Overlay: same as DS1 = 9×28 spatial grid (some padding)
+        252: (9, 28),           # DS3 Overlay: same as DS1 = 9×28 spatial grid (some padding)
         
         # CCNY datasets with exact spatial dimensions
         1178: (31, 38),         # CCNY May 2022: 1178 samples = 31×38 grid
@@ -1216,6 +1964,8 @@ def create_spatial_uncertainty_maps(pred_probs, epistemic_unc, aleatoric_unc, to
             shape = (44, 34)  # CCNY Nov pattern
         elif 'OVERLAY' in dataset_name.upper() or 'DS3' in dataset_name.upper():
             shape = (9, 28)  # DS3 Overlay uses same spatial arrangement as DS1
+        elif 'DS3-' in dataset_name.upper():
+           shape = (9, 28)  # DS3 slabs have same spatial arrangement as DS1
         else:
             # Last resort: find closest rectangular arrangement
             factors = []
@@ -1461,7 +2211,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     plt.figure(figsize=(fig_width, fig_height))
     plt.imshow(classification_map, cmap='Spectral', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Non-defect Probability', shrink=0.8)
-    plt.title(f'Evidential Classification Map - {dataset_name}\nSpatial Shape: {shape[0]}×{shape[1]} (Each pixel = 1 measurement)', 
+    plt.title(f'Defect Map - {dataset_name}', 
               fontsize=14, fontweight='bold')
     plt.xlabel('Spatial X Position')
     plt.ylabel('Spatial Y Position')
@@ -1472,7 +2222,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     plt.figure(figsize=(fig_width, fig_height))
     plt.imshow(epistemic_map, cmap='plasma', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Epistemic Uncertainty (Higher=More Uncertain)', shrink=0.8)
-    plt.title(f'Evidential Epistemic Uncertainty - {dataset_name}\nModel Uncertainty at Each Location (Each pixel = 1 measurement)', 
+    plt.title(f'Evidential Epistemic Uncertainty - {dataset_name}\nModel Uncertainty at Each Location', 
               fontsize=14, fontweight='bold')
     plt.xlabel('Spatial X Position')
     plt.ylabel('Spatial Y Position')
@@ -1483,7 +2233,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     plt.figure(figsize=(fig_width, fig_height))
     plt.imshow(aleatoric_map, cmap='plasma', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Aleatoric Uncertainty (Higher=More Uncertain)', shrink=0.8)
-    plt.title(f'Evidential Aleatoric Uncertainty - {dataset_name}\nData Uncertainty at Each Location (Each pixel = 1 measurement)', 
+    plt.title(f'Evidential Aleatoric Uncertainty - {dataset_name}\nData Uncertainty at Each Location', 
               fontsize=14, fontweight='bold')
     plt.xlabel('Spatial X Position')
     plt.ylabel('Spatial Y Position')
@@ -1494,7 +2244,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     plt.figure(figsize=(fig_width, fig_height))
     plt.imshow(total_uncertainty_map, cmap='Purples_r', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Total Uncertainty (Higher=More Uncertain)', shrink=0.8)
-    plt.title(f'Evidential Total Uncertainty - {dataset_name}\nCombined Uncertainty at Each Location (Each pixel = 1 measurement)', 
+    plt.title(f'Evidential Total Uncertainty - {dataset_name}\nCombined Uncertainty at Each Location', 
               fontsize=14, fontweight='bold')
     plt.xlabel('Spatial X Position')
     plt.ylabel('Spatial Y Position')
@@ -1505,7 +2255,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     plt.figure(figsize=(fig_width, fig_height))
     plt.imshow(confidence_map, cmap='magma_r', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Confidence (Higher=More Confident)', shrink=0.8)
-    plt.title(f'Evidential Confidence Map - {dataset_name}\nPrediction Confidence at Each Location (Each pixel = 1 measurement)', 
+    plt.title(f'Evidential Confidence Map - {dataset_name}\nPrediction Confidence at Each Location', 
               fontsize=14, fontweight='bold')
     plt.xlabel('Spatial X Position')
     plt.ylabel('Spatial Y Position')
@@ -1516,7 +2266,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     plt.figure(figsize=(fig_width, fig_height))
     plt.imshow(evidence_map, cmap='viridis', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Evidence Strength (Higher=Stronger Evidence)', shrink=0.8)
-    plt.title(f'Evidential Evidence Strength - {dataset_name}\nEvidence Strength at Each Location (Each pixel = 1 measurement)', 
+    plt.title(f'Evidential Evidence Strength - {dataset_name}\nEvidence Strength at Each Location', 
               fontsize=14, fontweight='bold')
     plt.xlabel('Spatial X Position')
     plt.ylabel('Spatial Y Position')
@@ -1532,7 +2282,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     print(f"  ✓ {model_name}_model_evidence_{safe_name}.png (Evidence Strength)")
 
 
-def create_ds1_comparison_figure(targets, predictions, pred_probs, total_uncertainty, 
+def create_ds1_comparison_figure(figure_name, targets, predictions, pred_probs, total_uncertainty, 
                                 epistemic_uncertainty, dataset_name, experiment_name=None, model_name=None):
     """
     Create DS1 comparison figure: Ground Truth vs Predictions vs Uncertainty Analysis (2x2 grid)
@@ -1640,7 +2390,7 @@ def create_ds1_comparison_figure(targets, predictions, pred_probs, total_uncerta
         plt.subplots_adjust(top=0.88, bottom=0.15)
         
         # Save the comparison figure
-        comparison_filename = f'{model_name}_ds1_comparison_figure.png'
+        comparison_filename = f'{model_name}_{figure_name}.png'
         plt.savefig(f'new_uncertainty_results/{experiment_name}/{comparison_filename}', dpi=300, bbox_inches='tight')
         plt.close()
         
@@ -1896,6 +2646,8 @@ def analyze_inference_results(results, dataset_name, experiment_name=None, model
     confidences = results['confidences']
     alphas = results['alphas']
     targets = results['targets']
+    targets[targets>0] = 1
+    targets[targets<1] = 0
     accuracy = results['accuracy']
     
     print(f"Dataset: {dataset_name}")
@@ -2017,7 +2769,7 @@ def analyze_inference_results(results, dataset_name, experiment_name=None, model
     # 6. Special DS1 comparison figure (only for DS1 Test dataset with ground truth)
     if 'DS1' in dataset_name and 'Test' in dataset_name and len(targets_np) > 0:
         create_ds1_comparison_figure(
-            targets_np, pred_classes_np, pred_probs_np, total_unc_np.squeeze(),
+            '_ds1_comparison_figure', targets_np, pred_classes_np, pred_probs_np, total_unc_np.squeeze(),
             epistemic_unc_np.squeeze(), dataset_name, experiment_name, model_name
         )
     
@@ -2039,7 +2791,8 @@ if __name__ == '__main__':
     os.makedirs(f'new_uncertainty_results/{experiment_name}', exist_ok=True)
     
     # Run the inference-time analysis
-    success = run_inference_time_uncertainty_analysis(model_path, experiment_name, model_name)
+    # success = run_inference_time_uncertainty_analysis(model_path, experiment_name, model_name)
+    success = run_inference_time_uncertainty_analysis_enhanced(model_path, experiment_name, model_name)
     
     if not success:
         print("\n🔄 Trying alternative model paths...")
