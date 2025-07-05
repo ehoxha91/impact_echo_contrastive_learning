@@ -2023,7 +2023,7 @@ def create_spatial_uncertainty_maps(pred_probs, epistemic_unc, aleatoric_unc, to
         print(f"✅ Successfully created spatial maps with shape {shape}")
         
         # Create comprehensive SPATIAL uncertainty visualization (2×3 grid like CCNY Nov 2023)
-        fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+        fig, axes = plt.subplots(3, 2, figsize=(20, 12))
         fig.suptitle(f'Classification and Uncertainty Results - {dataset_name}', 
                     fontsize=18, fontweight='bold')
         
@@ -2050,34 +2050,34 @@ def create_spatial_uncertainty_maps(pred_probs, epistemic_unc, aleatoric_unc, to
         cbar2.set_label('Epistemic Uncertainty')
         
         # 3. Aleatoric uncertainty map - data uncertainty at each location
-        im3 = axes[0, 2].imshow(aleatoric_map, cmap='Blues_r', interpolation='gaussian', aspect='equal')
-        axes[0, 2].set_title(f'Aleatoric Uncertainty\n(Data Uncertainty)', fontsize=12, fontweight='bold')
-        axes[0, 2].set_xlabel('Spatial X Position')
-        axes[0, 2].set_ylabel('Spatial Y Position')
+        im3 = axes[1, 0].imshow(aleatoric_map, cmap='Blues_r', interpolation='gaussian', aspect='equal')
+        axes[1, 0].set_title(f'Aleatoric Uncertainty\n(Data Uncertainty)', fontsize=12, fontweight='bold')
+        axes[1, 0].set_xlabel('Spatial X Position')
+        axes[1, 0].set_ylabel('Spatial Y Position')
         cbar3 = plt.colorbar(im3, ax=axes[0, 2], shrink=0.8)
         cbar3.set_label('Aleatoric Uncertainty ')
         
         # 4. Total uncertainty map - combined uncertainty at each location
-        im4 = axes[1, 0].imshow(total_uncertainty_map, cmap='plasma', interpolation='gaussian', aspect='equal')
-        axes[1, 0].set_title(f'Total Uncertainty', fontsize=12, fontweight='bold')
-        axes[1, 0].set_xlabel('Spatial X Position')
-        axes[1, 0].set_ylabel('Spatial Y Position')
+        im4 = axes[1, 1].imshow(total_uncertainty_map, cmap='plasma', interpolation='gaussian', aspect='equal')
+        axes[1, 1].set_title(f'Total Uncertainty', fontsize=12, fontweight='bold')
+        axes[1, 1].set_xlabel('Spatial X Position')
+        axes[1, 1].set_ylabel('Spatial Y Position')
         cbar4 = plt.colorbar(im4, ax=axes[1, 0], shrink=0.8)
         cbar4.set_label('Total Uncertainty ')
         
         # 5. Confidence map - prediction confidence at each location
-        im5 = axes[1, 1].imshow(confidence_map, cmap='Spectral_r', interpolation='gaussian', aspect='equal')
-        axes[1, 1].set_title(f'Prediction Confidence\n(Higher=Better)', fontsize=12, fontweight='bold')
-        axes[1, 1].set_xlabel('Spatial X Position')
-        axes[1, 1].set_ylabel('Spatial Y Position')
+        im5 = axes[2, 0].imshow(confidence_map, cmap='Spectral_r', interpolation='gaussian', aspect='equal')
+        axes[2, 0].set_title(f'Prediction Confidence\n(Higher=Better)', fontsize=12, fontweight='bold')
+        axes[2, 0].set_xlabel('Spatial X Position')
+        axes[2, 0].set_ylabel('Spatial Y Position')
         cbar5 = plt.colorbar(im5, ax=axes[1, 1], shrink=0.8)
         cbar5.set_label('Confidence')
         
         # 6. Evidence strength map - evidence strength at each location
-        im6 = axes[1, 2].imshow(evidence_map, cmap='viridis', interpolation='gaussian', aspect='equal')
-        axes[1, 2].set_title(f'Evidence Strength\n(Alpha Sum)', fontsize=12, fontweight='bold')
-        axes[1, 2].set_xlabel('Spatial X Position')
-        axes[1, 2].set_ylabel('Spatial Y Position')
+        im6 = axes[2, 1].imshow(evidence_map, cmap='viridis', interpolation='gaussian', aspect='equal')
+        axes[2, 1].set_title(f'Evidence Strength\n(Alpha Sum)', fontsize=12, fontweight='bold')
+        axes[2, 1].set_xlabel('Spatial X Position')
+        axes[2, 1].set_ylabel('Spatial Y Position')
         cbar6 = plt.colorbar(im6, ax=axes[1, 2], shrink=0.8)
         cbar6.set_label('Evidence Strength')
         

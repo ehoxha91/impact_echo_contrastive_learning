@@ -1,0 +1,639 @@
+=== Real-Time Evidential Uncertainty Analysis ===
+🚀 Running experiment: evidential_transformer_v4 with model: evidential_transformer_v4
+🚀 Generating beautiful uncertainty analysis during inference time!
+
+=== Enhanced Real-Time Evidential Uncertainty Analysis ===
+🚀 Generating beautiful uncertainty visualizations for all DS3 slabs during inference...
+
+1. Running inference on test datasets (including all DS3 slabs)...
+Loaded full evidential model from weights/evidential_transformer_v4.pth
+
+=== Testing on DS1 Test ===
+Loaded dataset data/y_test.npy, with 252 data points
+Testing supervised dataset on 252 samples...
+First batch shapes:
+  prob: torch.Size([32, 2])
+  total_unc: torch.Size([32])
+  confidence: torch.Size([32])
+  labels: torch.Size([32])
+Debug concatenation shapes:
+  First prediction shape: torch.Size([32, 2])
+  Last prediction shape: torch.Size([28, 2])
+  Total prediction tensors: 8
+Concatenation along dim=1 failed: Sizes of tensors must match except in dimension 1. Expected size 32 but got size 28 for tensor number 7 in the list.
+Trying concatenation along dim=0...
+Accuracy: 90.48%
+Mean Total Uncertainty: 0.429259
+Mean Epistemic Uncertainty: 0.060590
+Mean Aleatoric Uncertainty: 0.368669
+Mean Confidence: 0.837475
+Mean Evidence Strength: 7.321327
+
+=== Testing on DS3-1 ===
+Loading DS3 multi-slab data...
+Full DS3 data shape: X=(1008, 860), y=(1008,)
+DS3-1: samples 0-251 (252 total) - Same as DS1 spatial arrangement
+DS3-2: samples 252-503 (252 total) - Same as DS1 spatial arrangement
+DS3-3: samples 504-755 (252 total) - Same as DS1 spatial arrangement
+DS3-4: samples 756-1007 (252 total) - Same as DS1 spatial arrangement
+Testing DS3 slab 1: 252 samples (single batch)
+Original X_data shape: torch.Size([252, 860])
+Reshaped X_data shape: torch.Size([252, 1, 860])
+Accuracy: 39.68%
+Mean Total Uncertainty: 0.498601
+Mean Epistemic Uncertainty: 0.077192
+Mean Aleatoric Uncertainty: 0.421409
+Mean Confidence: 0.779699
+Mean Evidence Strength: 6.056599
+
+=== Testing on DS3-2 ===
+Testing DS3 slab 2: 252 samples (single batch)
+Original X_data shape: torch.Size([252, 860])
+Reshaped X_data shape: torch.Size([252, 1, 860])
+Accuracy: 39.68%
+Mean Total Uncertainty: 0.454531
+Mean Epistemic Uncertainty: 0.064115
+Mean Aleatoric Uncertainty: 0.390416
+Mean Confidence: 0.812785
+Mean Evidence Strength: 7.171300
+
+=== Testing on DS3-3 ===
+Testing DS3 slab 3: 252 samples (single batch)
+Original X_data shape: torch.Size([252, 860])
+Reshaped X_data shape: torch.Size([252, 1, 860])
+Accuracy: 22.62%
+Mean Total Uncertainty: 0.469601
+Mean Epistemic Uncertainty: 0.068993
+Mean Aleatoric Uncertainty: 0.400607
+Mean Confidence: 0.798212
+Mean Evidence Strength: 6.804200
+
+=== Testing on DS3-4 ===
+Testing DS3 slab 4: 252 samples (single batch)
+Original X_data shape: torch.Size([252, 860])
+Reshaped X_data shape: torch.Size([252, 1, 860])
+Accuracy: 33.73%
+Mean Total Uncertainty: 0.439140
+Mean Epistemic Uncertainty: 0.062049
+Mean Aleatoric Uncertainty: 0.377091
+Mean Confidence: 0.823693
+Mean Evidence Strength: 7.318435
+
+=== Testing on CCNY May 2022 ===
+Testing unsupervised dataset: CCNY May 2022
+Testing CCNY May data: 1178 samples
+Unsupervised dataset - no accuracy calculated
+Mean Total Uncertainty: 0.480624
+Mean Epistemic Uncertainty: 0.071676
+Mean Aleatoric Uncertainty: 0.408947
+Mean Confidence: 0.796031
+Mean Evidence Strength: 6.423086
+
+=== Testing on CCNY June 2022 ===
+Testing unsupervised dataset: CCNY June 2022
+Testing CCNY June data: 646 samples
+Unsupervised dataset - no accuracy calculated
+Mean Total Uncertainty: 0.477024
+Mean Epistemic Uncertainty: 0.068508
+Mean Aleatoric Uncertainty: 0.408516
+Mean Confidence: 0.801248
+Mean Evidence Strength: 6.611778
+
+=== Testing on CCNY Nov 2023 ===
+Testing unsupervised dataset: CCNY Nov 2023
+Testing CCNY Nov 2023 data: 1496 samples
+Unsupervised dataset - no accuracy calculated
+Mean Total Uncertainty: 0.532739
+Mean Epistemic Uncertainty: 0.080615
+Mean Aleatoric Uncertainty: 0.452124
+Mean Confidence: 0.751984
+Mean Evidence Strength: 5.651448
+✓ Inference complete! Now generating enhanced analysis...
+
+
+=== Analyzing DS1 Test Results ===
+Dataset: DS1 Test
+Test Accuracy: 90.48%
+Number of samples: 252
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 252
+Class distribution: No Defect: 188, Defect: 64
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 180          8           
+       Defect   16           48          
+
+=== Binary Classification Metrics ===
+True Positives (TP):   48
+True Negatives (TN):   180
+False Positives (FP):  8
+False Negatives (FN):  16
+
+=== Performance Metrics ===
+Overall Accuracy:      0.9048 (90.48%)
+Precision (PPV):       0.8571 (85.71%)
+Recall (Sensitivity):  0.7500 (75.00%)
+Specificity:           0.9574 (95.74%)
+Negative Pred. Value:  0.9184 (91.84%)
+F1 Score:              0.8000
+
+=== Error Rates ===
+False Positive Rate:   0.0426 (4.26%)
+False Negative Rate:   0.2500 (25.00%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.9574 (95.74%)
+Defect Detection Accuracy: 0.7500 (75.00%)
+
+Balanced Accuracy:     0.8537 (85.37%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.8571
+Sklearn Recall:        0.7500
+Sklearn F1:            0.8000
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       0.92      0.96      0.94       188
+      Defect       0.86      0.75      0.80        64
+
+    accuracy                           0.90       252
+   macro avg       0.89      0.85      0.87       252
+weighted avg       0.90      0.90      0.90       252
+
+Correct Predictions: 228/252
+
+=== Key Defect Detection Performance for DS1 Test ===
+Precision (Defect): 0.8571 (85.71%)
+Recall (Defect):    0.7500 (75.00%)
+F1-Score:           0.8000
+Specificity:        0.9574 (95.74%)
+Balanced Accuracy:  0.8537 (85.37%)
+
+=== Live Uncertainty Analysis for DS1 Test ===
+Total Uncertainty - Mean: 0.429259 ± 0.080250
+Epistemic Uncertainty - Mean: 0.060590 ± 0.014559
+Aleatoric Uncertainty - Mean: 0.368669 ± 0.067036
+Confidence - Mean: 0.837475 ± 0.068946
+
+🎨 Creating beautiful visualizations for DS1 Test...
+
+🗺️  Creating individual defect maps for DS1 Test...
+✅ Using exact spatial shape: 9×28 for individual maps
+🎨 Generating individual defect maps for DS1 Test (Shape: 9×28)...
+✅ Individual defect maps saved for DS1 Test:
+  ✓ evidential_transformer_v4_model_ds1_test.png (Defect Probability)
+  ✓ evidential_transformer_v4_model_epistemic_ds1_test.png (Model Uncertainty)
+  ✓ evidential_transformer_v4_model_aleatoric_ds1_test.png (Data Uncertainty)
+  ✓ evidential_transformer_v4_model_total_uncertainty_ds1_test.png (Total Uncertainty)
+  ✓ evidential_transformer_v4_model_confidence_ds1_test.png (Confidence)
+  ✓ evidential_transformer_v4_model_evidence_ds1_test.png (Evidence Strength)
+✅ All individual defect maps generated for DS1 Test with shape 9×28
+
+🗺️  Creating spatial maps for DS1 Test (252 samples)
+✅ Using exact spatial shape: 9×28 = 252 locations
+🔄 Reshaping data to spatial grid: (9, 28)
+✅ Successfully created spatial maps with shape (9, 28)
+✅ Comprehensive spatial uncertainty maps saved for DS1 Test
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ds1_test.png
+  🗺️  Shape: 9×28 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+  📊 Creating comprehensive analysis for DS1 Test (DS1/DS3 slab)...
+✓ Advanced uncertainty distribution analysis saved to new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_distributions.png
+✓ Comprehensive evidential uncertainty analysis saved to new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_analysis.png
+
+=== Advanced Uncertainty Correlation Analysis ===
+Epistemic-Aleatoric Correlation: 0.8885
+Total-Confidence Correlation: -0.9728
+Evidence-Confidence Correlation: 0.8177
+
+=== Uncertainty Decomposition Analysis ===
+Mean Epistemic/(Epistemic+Aleatoric) Ratio: 0.1403
+Samples with high epistemic dominance (>0.7): 0
+Samples with high aleatoric dominance (<0.3): 252
+
+=== Statistical Significance Analysis ===
+T-test (Correct vs Incorrect Epistemic): t=-5.0489, p=0.000001
+✓ Significant difference in epistemic uncertainty between correct/incorrect predictions
+✓ Advanced correlation analysis complete
+🎨 Creating DS1 comparison figure for DS1 Test...
+✅ DS1 comparison figure saved: evidential_transformer_v4_DS1 Test_comparison_figure.png
+  ✓ Shows: Ground Truth | Predictions | Predictions+Uncertainty | High Uncertainty Regions
+  ✓ Accuracy: 90.5%, High Uncertainty: 24/252 locations
+✓ Beautiful analysis complete for DS1 Test!
+
+=== Analyzing DS3-1 Results ===
+Dataset: DS3-1
+DS3 Slab Analysis - 252 samples with 9×28 spatial arrangement (same as DS1)
+Test Accuracy: 39.68%
+Number of samples: 252
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 252
+Class distribution: No Defect: 80, Defect: 172
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 78           2           
+       Defect   77           95          
+
+=== Binary Classification Metrics ===
+True Positives (TP):   95
+True Negatives (TN):   78
+False Positives (FP):  2
+False Negatives (FN):  77
+
+=== Performance Metrics ===
+Overall Accuracy:      0.6865 (68.65%)
+Precision (PPV):       0.9794 (97.94%)
+Recall (Sensitivity):  0.5523 (55.23%)
+Specificity:           0.9750 (97.50%)
+Negative Pred. Value:  0.5032 (50.32%)
+F1 Score:              0.7063
+
+=== Error Rates ===
+False Positive Rate:   0.0250 (2.50%)
+False Negative Rate:   0.4477 (44.77%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.9750 (97.50%)
+Defect Detection Accuracy: 0.5523 (55.23%)
+
+Balanced Accuracy:     0.7637 (76.37%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.9794
+Sklearn Recall:        0.5523
+Sklearn F1:            0.7063
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       0.50      0.97      0.66        80
+      Defect       0.98      0.55      0.71       172
+
+    accuracy                           0.69       252
+   macro avg       0.74      0.76      0.69       252
+weighted avg       0.83      0.69      0.69       252
+
+Correct Predictions: 173/252
+
+=== Key Defect Detection Performance for DS3-1 ===
+Precision (Defect): 0.9794 (97.94%)
+Recall (Defect):    0.5523 (55.23%)
+F1-Score:           0.7063
+Specificity:        0.9750 (97.50%)
+Balanced Accuracy:  0.7637 (76.37%)
+
+=== Live Uncertainty Analysis for DS3-1 ===
+Total Uncertainty - Mean: 0.498601 ± 0.106257
+Epistemic Uncertainty - Mean: 0.077192 ± 0.025560
+Aleatoric Uncertainty - Mean: 0.421409 ± 0.083487
+Confidence - Mean: 0.779699 ± 0.102411
+
+🎨 Creating beautiful visualizations for DS3-1...
+
+🗺️  Creating individual defect maps for DS3-1...
+✅ Using exact spatial shape: 9×28 for individual maps
+🎨 Generating individual defect maps for DS3-1 (Shape: 9×28)...
+✅ Individual defect maps saved for DS3-1:
+  ✓ evidential_transformer_v4_model_ds3_1.png (Defect Probability)
+  ✓ evidential_transformer_v4_model_epistemic_ds3_1.png (Model Uncertainty)
+  ✓ evidential_transformer_v4_model_aleatoric_ds3_1.png (Data Uncertainty)
+  ✓ evidential_transformer_v4_model_total_uncertainty_ds3_1.png (Total Uncertainty)
+  ✓ evidential_transformer_v4_model_confidence_ds3_1.png (Confidence)
+  ✓ evidential_transformer_v4_model_evidence_ds3_1.png (Evidence Strength)
+✅ All individual defect maps generated for DS3-1 with shape 9×28
+
+🗺️  Creating spatial maps for DS3-1 (252 samples)
+✅ Using exact spatial shape: 9×28 = 252 locations
+🔄 Reshaping data to spatial grid: (9, 28)
+✅ Successfully created spatial maps with shape (9, 28)
+✅ Comprehensive spatial uncertainty maps saved for DS3-1
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ds3_1.png
+  🗺️  Shape: 9×28 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+  📊 Creating comprehensive analysis for DS3-1 (DS1/DS3 slab)...
+✓ Advanced uncertainty distribution analysis saved to new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_distributions.png
+✓ Comprehensive evidential uncertainty analysis saved to new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_analysis.png
+
+=== Advanced Uncertainty Correlation Analysis ===
+Epistemic-Aleatoric Correlation: 0.8593
+Total-Confidence Correlation: -0.9699
+Evidence-Confidence Correlation: 0.8683
+
+=== Uncertainty Decomposition Analysis ===
+Mean Epistemic/(Epistemic+Aleatoric) Ratio: 0.1520
+Samples with high epistemic dominance (>0.7): 0
+Samples with high aleatoric dominance (<0.3): 252
+
+=== Statistical Significance Analysis ===
+T-test (Correct vs Incorrect Epistemic): t=-1.8396, p=0.067014
+✗ No significant difference in epistemic uncertainty
+✓ Advanced correlation analysis complete
+🎨 Creating DS1 comparison figure for DS3-1...
+✅ DS1 comparison figure saved: evidential_transformer_v4_DS3-1_comparison_figure.png
+  ✓ Shows: Ground Truth | Predictions | Predictions+Uncertainty | High Uncertainty Regions
+  ✓ Accuracy: 68.7%, High Uncertainty: 34/252 locations
+✓ Beautiful analysis complete for DS3-1!
+
+=== Analyzing DS3-2 Results ===
+Dataset: DS3-2
+DS3 Slab Analysis - 252 samples with 9×28 spatial arrangement (same as DS1)
+Test Accuracy: 39.68%
+Number of samples: 252
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 252
+Class distribution: No Defect: 80, Defect: 172
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 79           1           
+       Defect   60           112         
+
+=== Binary Classification Metrics ===
+True Positives (TP):   112
+True Negatives (TN):   79
+False Positives (FP):  1
+False Negatives (FN):  60
+
+=== Performance Metrics ===
+Overall Accuracy:      0.7579 (75.79%)
+Precision (PPV):       0.9912 (99.12%)
+Recall (Sensitivity):  0.6512 (65.12%)
+Specificity:           0.9875 (98.75%)
+Negative Pred. Value:  0.5683 (56.83%)
+F1 Score:              0.7860
+
+=== Error Rates ===
+False Positive Rate:   0.0125 (1.25%)
+False Negative Rate:   0.3488 (34.88%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.9875 (98.75%)
+Defect Detection Accuracy: 0.6512 (65.12%)
+
+Balanced Accuracy:     0.8193 (81.93%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.9912
+Sklearn Recall:        0.6512
+Sklearn F1:            0.7860
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       0.57      0.99      0.72        80
+      Defect       0.99      0.65      0.79       172
+
+    accuracy                           0.76       252
+   macro avg       0.78      0.82      0.75       252
+weighted avg       0.86      0.76      0.77       252
+
+Correct Predictions: 191/252
+
+=== Key Defect Detection Performance for DS3-2 ===
+Precision (Defect): 0.9912 (99.12%)
+Recall (Defect):    0.6512 (65.12%)
+F1-Score:           0.7860
+Specificity:        0.9875 (98.75%)
+Balanced Accuracy:  0.8193 (81.93%)
+
+=== Live Uncertainty Analysis for DS3-2 ===
+Total Uncertainty - Mean: 0.454531 ± 0.108001
+Epistemic Uncertainty - Mean: 0.064115 ± 0.021074
+Aleatoric Uncertainty - Mean: 0.390416 ± 0.090913
+Confidence - Mean: 0.812785 ± 0.097277
+
+🎨 Creating beautiful visualizations for DS3-2...
+
+🗺️  Creating individual defect maps for DS3-2...
+✅ Using exact spatial shape: 9×28 for individual maps
+🎨 Generating individual defect maps for DS3-2 (Shape: 9×28)...
+✅ Individual defect maps saved for DS3-2:
+  ✓ evidential_transformer_v4_model_ds3_2.png (Defect Probability)
+  ✓ evidential_transformer_v4_model_epistemic_ds3_2.png (Model Uncertainty)
+  ✓ evidential_transformer_v4_model_aleatoric_ds3_2.png (Data Uncertainty)
+  ✓ evidential_transformer_v4_model_total_uncertainty_ds3_2.png (Total Uncertainty)
+  ✓ evidential_transformer_v4_model_confidence_ds3_2.png (Confidence)
+  ✓ evidential_transformer_v4_model_evidence_ds3_2.png (Evidence Strength)
+✅ All individual defect maps generated for DS3-2 with shape 9×28
+
+🗺️  Creating spatial maps for DS3-2 (252 samples)
+✅ Using exact spatial shape: 9×28 = 252 locations
+🔄 Reshaping data to spatial grid: (9, 28)
+✅ Successfully created spatial maps with shape (9, 28)
+✅ Comprehensive spatial uncertainty maps saved for DS3-2
+  📁 File: new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_maps_ds3_2.png
+  🗺️  Shape: 9×28 representing real spatial locations
+  📊 6 maps: Classification | Epistemic | Aleatoric | Total | Confidence | Evidence
+  📊 Creating comprehensive analysis for DS3-2 (DS1/DS3 slab)...
+✓ Advanced uncertainty distribution analysis saved to new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_distributions.png
+✓ Comprehensive evidential uncertainty analysis saved to new_uncertainty_results/evidential_transformer_v4/evidential_transformer_v4_uncertainty_analysis.png
+
+=== Advanced Uncertainty Correlation Analysis ===
+Epistemic-Aleatoric Correlation: 0.7712
+Total-Confidence Correlation: -0.9710
+Evidence-Confidence Correlation: 0.8332
+
+=== Uncertainty Decomposition Analysis ===
+Mean Epistemic/(Epistemic+Aleatoric) Ratio: 0.1399
+Samples with high epistemic dominance (>0.7): 0
+Samples with high aleatoric dominance (<0.3): 252
+
+=== Statistical Significance Analysis ===
+T-test (Correct vs Incorrect Epistemic): t=-2.6542, p=0.008459
+✓ Significant difference in epistemic uncertainty between correct/incorrect predictions
+✓ Advanced correlation analysis complete
+🎨 Creating DS1 comparison figure for DS3-2...
+✅ DS1 comparison figure saved: evidential_transformer_v4_DS3-2_comparison_figure.png
+  ✓ Shows: Ground Truth | Predictions | Predictions+Uncertainty | High Uncertainty Regions
+  ✓ Accuracy: 75.8%, High Uncertainty: 34/252 locations
+✓ Beautiful analysis complete for DS3-2!
+
+=== Analyzing DS3-3 Results ===
+Dataset: DS3-3
+DS3 Slab Analysis - 252 samples with 9×28 spatial arrangement (same as DS1)
+Test Accuracy: 22.62%
+Number of samples: 252
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 252
+Class distribution: No Defect: 80, Defect: 172
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 45           35          
+       Defect   29           143         
+
+=== Binary Classification Metrics ===
+True Positives (TP):   143
+True Negatives (TN):   45
+False Positives (FP):  35
+False Negatives (FN):  29
+
+=== Performance Metrics ===
+Overall Accuracy:      0.7460 (74.60%)
+Precision (PPV):       0.8034 (80.34%)
+Recall (Sensitivity):  0.8314 (83.14%)
+Specificity:           0.5625 (56.25%)
+Negative Pred. Value:  0.6081 (60.81%)
+F1 Score:              0.8171
+
+=== Error Rates ===
+False Positive Rate:   0.4375 (43.75%)
+False Negative Rate:   0.1686 (16.86%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.5625 (56.25%)
+Defect Detection Accuracy: 0.8314 (83.14%)
+
+Balanced Accuracy:     0.6969 (69.69%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.8034
+Sklearn Recall:        0.8314
+Sklearn F1:            0.8171
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       0.61      0.56      0.58        80
+      Defect       0.80      0.83      0.82       172
+
+    accuracy                           0.75       252
+   macro avg       0.71      0.70      0.70       252
+weighted avg       0.74      0.75      0.74       252
+
+Correct Predictions: 188/252
+
+=== Key Defect Detection Performance for DS3-3 ===
+Precision (Defect): 0.8034 (80.34%)
+Recall (Defect):    0.8314 (83.14%)
+F1-Score:           0.8171
+Specificity:        0.5625 (56.25%)
+Balanced Accuracy:  0.6969 (69.69%)
+
+=== Live Uncertainty Analysis for DS3-3 ===
+Total Uncertainty - Mean: 0.469601 ± 0.118411
+Epistemic Uncertainty - Mean: 0.068993 ± 0.025365
+Aleatoric Uncertainty - Mean: 0.400607 ± 0.098319
+Confidence - Mean: 0.798212 ± 0.107859
+
+=== Advanced Uncertainty Correlation Analysis ===
+Epistemic-Aleatoric Correlation: 0.7441
+Total-Confidence Correlation: -0.9726
+Evidence-Confidence Correlation: 0.8227
+
+=== Uncertainty Decomposition Analysis ===
+Mean Epistemic/(Epistemic+Aleatoric) Ratio: 0.1450
+Samples with high epistemic dominance (>0.7): 0
+Samples with high aleatoric dominance (<0.3): 252
+
+=== Statistical Significance Analysis ===
+T-test (Correct vs Incorrect Epistemic): t=-4.2042, p=0.000037
+✓ Significant difference in epistemic uncertainty between correct/incorrect predictions
+✓ Advanced correlation analysis complete
+🎨 Creating DS1 comparison figure for DS3-3...
+✅ DS1 comparison figure saved: evidential_transformer_v4_DS3-3_comparison_figure.png
+  ✓ Shows: Ground Truth | Predictions | Predictions+Uncertainty | High Uncertainty Regions
+  ✓ Accuracy: 74.6%, High Uncertainty: 38/252 locations
+✓ Beautiful analysis complete for DS3-3!
+
+=== Analyzing DS3-4 Results ===
+Dataset: DS3-4
+DS3 Slab Analysis - 252 samples with 9×28 spatial arrangement (same as DS1)
+Test Accuracy: 33.73%
+Number of samples: 252
+
+=== Detailed Defect Detection Accuracy Metrics ===
+Total samples evaluated: 252
+Class distribution: No Defect: 80, Defect: 172
+
+Confusion Matrix:
+              Predicted
+              No Defect    Defect      
+Actual No Defect 62           18          
+       Defect   20           152         
+
+=== Binary Classification Metrics ===
+True Positives (TP):   152
+True Negatives (TN):   62
+False Positives (FP):  18
+False Negatives (FN):  20
+
+=== Performance Metrics ===
+Overall Accuracy:      0.8492 (84.92%)
+Precision (PPV):       0.8941 (89.41%)
+Recall (Sensitivity):  0.8837 (88.37%)
+Specificity:           0.7750 (77.50%)
+Negative Pred. Value:  0.7561 (75.61%)
+F1 Score:              0.8889
+
+=== Error Rates ===
+False Positive Rate:   0.2250 (22.50%)
+False Negative Rate:   0.1163 (11.63%)
+
+=== Class-Specific Accuracy ===
+No Defect Detection Accuracy: 0.7750 (77.50%)
+Defect Detection Accuracy: 0.8837 (88.37%)
+
+Balanced Accuracy:     0.8294 (82.94%)
+
+=== Sklearn Verification ===
+Sklearn Precision:     0.8941
+Sklearn Recall:        0.8837
+Sklearn F1:            0.8889
+
+=== Detailed Classification Report ===
+              precision    recall  f1-score   support
+
+   No Defect       0.76      0.78      0.77        80
+      Defect       0.89      0.88      0.89       172
+
+    accuracy                           0.85       252
+   macro avg       0.83      0.83      0.83       252
+weighted avg       0.85      0.85      0.85       252
+
+Correct Predictions: 214/252
+
+=== Key Defect Detection Performance for DS3-4 ===
+Precision (Defect): 0.8941 (89.41%)
+Recall (Defect):    0.8837 (88.37%)
+F1-Score:           0.8889
+Specificity:        0.7750 (77.50%)
+Balanced Accuracy:  0.8294 (82.94%)
+
+=== Live Uncertainty Analysis for DS3-4 ===
+Total Uncertainty - Mean: 0.439140 ± 0.105574
+Epistemic Uncertainty - Mean: 0.062048 ± 0.017765
+Aleatoric Uncertainty - Mean: 0.377091 ± 0.089385
+Confidence - Mean: 0.823693 ± 0.094644
+
+
+=== Live Uncertainty Analysis for CCNY May 2022 ===
+Total Uncertainty - Mean: 0.480624 ± 0.102203
+Epistemic Uncertainty - Mean: 0.071676 ± 0.021993
+Aleatoric Uncertainty - Mean: 0.408947 ± 0.082604
+Confidence - Mean: 0.796031 ± 0.094522
+
+=== Live Uncertainty Analysis for CCNY June 2022 ===
+Total Uncertainty - Mean: 0.477024 ± 0.095212
+Epistemic Uncertainty - Mean: 0.068508 ± 0.018166
+Aleatoric Uncertainty - Mean: 0.408516 ± 0.078772
+Confidence - Mean: 0.801248 ± 0.087187
+
+=== Live Uncertainty Analysis for CCNY Nov 2023 ===
+Total Uncertainty - Mean: 0.532739 ± 0.101083
+Epistemic Uncertainty - Mean: 0.080615 ± 0.019823
+Aleatoric Uncertainty - Mean: 0.452124 ± 0.084429
+Confidence - Mean: 0.751984 ± 0.102346
+
