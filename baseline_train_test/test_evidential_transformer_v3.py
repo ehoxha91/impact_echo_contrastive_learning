@@ -397,7 +397,7 @@ def create_enhanced_multi_dataset_comparison_figure(dataset_results, experiment_
     # Create enhanced figure (num_rows x 2)
     fig, axes = plt.subplots(num_rows, 2, figsize=(16, 4*num_rows))
     fig.suptitle('Enhanced Multi-Dataset Comparison: All DS3 Slabs + Other Datasets\nEvidential IENet Results', 
-                fontsize=16, y=0.98)
+                fontsize=16, fontweight='bold', y=0.98)
     
     # Handle single row case
     if num_rows == 1:
@@ -453,17 +453,17 @@ def create_enhanced_multi_dataset_comparison_figure(dataset_results, experiment_
             
             # Column 1: Prediction Probability Map
             im1 = axes[row_idx, 0].imshow(prob_map, cmap='Spectral_r', interpolation='gaussian', aspect='equal')
-            axes[row_idx, 0].set_title(f'{title}\nPrediction Probability (Defect)', fontsize=12)
+            axes[row_idx, 0].set_title(f'{title}\nPrediction Probability (Non-Defect)', fontsize=12, fontweight='bold')
             axes[row_idx, 0].set_xlabel('Spatial X Position')
             axes[row_idx, 0].set_ylabel('Spatial Y Position')
             
             # Add colorbar
             cbar1 = plt.colorbar(im1, ax=axes[row_idx, 0], shrink=0.8)
-            cbar1.set_label('-Defect Probability', fontsize=10)
+            cbar1.set_label('Non-Defect Probability', fontsize=10)
             
             # Column 2: Total Uncertainty Map
             im2 = axes[row_idx, 1].imshow(uncertainty_map, cmap='plasma', interpolation='gaussian', aspect='equal')
-            axes[row_idx, 1].set_title(f'{title}\nTotal Uncertainty', fontsize=12)
+            axes[row_idx, 1].set_title(f'{title}\nTotal Uncertainty', fontsize=12, fontweight='bold')
             axes[row_idx, 1].set_xlabel('Spatial X Position')
             axes[row_idx, 1].set_ylabel('Spatial Y Position')
             
@@ -505,9 +505,9 @@ def create_enhanced_multi_dataset_comparison_figure(dataset_results, experiment_
     
     # Add column headers
     axes[0, 0].text(0.5, 1.15, 'Prediction Probability Maps', ha='center', va='bottom', 
-                   transform=axes[0, 0].transAxes, fontsize=14)
+                   transform=axes[0, 0].transAxes, fontsize=14, fontweight='bold')
     axes[0, 1].text(0.5, 1.15, 'Total Uncertainty Maps', ha='center', va='bottom', 
-                   transform=axes[0, 1].transAxes, fontsize=14)
+                   transform=axes[0, 1].transAxes, fontsize=14, fontweight='bold')
     
     # Add overall figure description
     description = f"""
@@ -947,7 +947,7 @@ def create_multi_dataset_comparison_figure(dataset_results, experiment_name=None
     # Create 4x2 figure (4 datasets x 2 maps each)
     fig, axes = plt.subplots(4, 2, figsize=(16, 20))
     fig.suptitle('Multi-Dataset Comparison: Prediction Probability vs Total Uncertainty\nEvidential IENet Results', 
-                fontsize=16, y=0.98)
+                fontsize=16, fontweight='bold', y=0.98)
     
     dataset_count = 0
     
@@ -1003,7 +1003,7 @@ def create_multi_dataset_comparison_figure(dataset_results, experiment_name=None
             
             # Column 1: Prediction Probability Map
             im1 = axes[row, 0].imshow(prob_map, cmap='Spectral_r', interpolation='gaussian', aspect='equal')
-            axes[row, 0].set_title(f'{title}\nPrediction Probability (Non-Defect)', fontsize=12)
+            axes[row, 0].set_title(f'{title}\nPrediction Probability (Non-Defect)', fontsize=12, fontweight='bold')
             axes[row, 0].set_xlabel('Spatial X Position')
             axes[row, 0].set_ylabel('Spatial Y Position')
             
@@ -1013,7 +1013,7 @@ def create_multi_dataset_comparison_figure(dataset_results, experiment_name=None
             
             # Column 2: Total Uncertainty Map
             im2 = axes[row, 1].imshow(uncertainty_map, cmap='plasma', interpolation='gaussian', aspect='equal')
-            axes[row, 1].set_title(f'{title}\nTotal Uncertainty', fontsize=12)
+            axes[row, 1].set_title(f'{title}\nTotal Uncertainty', fontsize=12, fontweight='bold')
             axes[row, 1].set_xlabel('Spatial X Position')
             axes[row, 1].set_ylabel('Spatial Y Position')
             
@@ -1052,9 +1052,9 @@ def create_multi_dataset_comparison_figure(dataset_results, experiment_name=None
     
     # Add column headers
     axes[0, 0].text(0.5, 1.15, 'Prediction Probability Maps', ha='center', va='bottom', 
-                   transform=axes[0, 0].transAxes, fontsize=14)
+                   transform=axes[0, 0].transAxes, fontsize=14, fontweight='bold')
     axes[0, 1].text(0.5, 1.15, 'Total Uncertainty Maps', ha='center', va='bottom', 
-                   transform=axes[0, 1].transAxes, fontsize=14)
+                   transform=axes[0, 1].transAxes, fontsize=14, fontweight='bold')
     
     # Add overall figure description
     description = f"""
@@ -1273,7 +1273,7 @@ def create_advanced_uncertainty_correlations(epistemic_unc, aleatoric_unc, total
     sns.heatmap(corr_matrix, mask=mask, annot=True, cmap='RdBu_r', center=0,
                 square=True, fmt='.3f', cbar_kws={"shrink": .8},
                 xticklabels=corr_labels, yticklabels=corr_labels)
-    plt.title('Uncertainty Metrics Correlation Matrix', fontsize=16)
+    plt.title('Uncertainty Metrics Correlation Matrix', fontsize=16, fontweight='bold')
     plt.tight_layout()
     if experiment_name is None:
         experiment_name = default_experiment_name
@@ -1361,16 +1361,16 @@ def create_advanced_uncertainty_distribution_analysis(pred_probs, epistemic_unc,
     sns.set_palette("husl")
     
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle('Evidential Uncertainty Distribution Analysis', fontsize=18)
+    fig.suptitle('Evidential Uncertainty Distribution Analysis', fontsize=18, fontweight='bold')
     
     # Plot 1: Epistemic vs Aleatoric Uncertainty scatter
     axes[0, 0].scatter(epistemic_unc[correct_predictions], aleatoric_unc[correct_predictions], 
                       alpha=0.7, c='green', label='Correct', s=40, edgecolors='black', linewidth=0.5)
     axes[0, 0].scatter(epistemic_unc[~correct_predictions], aleatoric_unc[~correct_predictions], 
                       alpha=0.7, c='red', label='Incorrect', s=40, edgecolors='black', linewidth=0.5)
-    axes[0, 0].set_xlabel('Epistemic Uncertainty', fontsize=12)
-    axes[0, 0].set_ylabel('Aleatoric Uncertainty', fontsize=12)
-    axes[0, 0].set_title('Epistemic vs Aleatoric Uncertainty', fontsize=14)
+    axes[0, 0].set_xlabel('Epistemic Uncertainty', fontsize=12, fontweight='bold')
+    axes[0, 0].set_ylabel('Aleatoric Uncertainty', fontsize=12, fontweight='bold')
+    axes[0, 0].set_title('Epistemic vs Aleatoric Uncertainty', fontsize=14, fontweight='bold')
     axes[0, 0].legend(frameon=True, fancybox=True, shadow=True)
     axes[0, 0].grid(True, alpha=0.3, linestyle='--')
     
@@ -1379,9 +1379,9 @@ def create_advanced_uncertainty_distribution_analysis(pred_probs, epistemic_unc,
                    color='green', label='Correct', density=True, edgecolor='black', linewidth=0.8)
     axes[0, 1].hist(total_unc[~correct_predictions], bins=25, alpha=0.7, 
                    color='red', label='Incorrect', density=True, edgecolor='black', linewidth=0.8)
-    axes[0, 1].set_xlabel('Total Uncertainty', fontsize=12)
-    axes[0, 1].set_ylabel('Density', fontsize=12)
-    axes[0, 1].set_title('Total Uncertainty Distribution', fontsize=14)
+    axes[0, 1].set_xlabel('Total Uncertainty', fontsize=12, fontweight='bold')
+    axes[0, 1].set_ylabel('Density', fontsize=12, fontweight='bold')
+    axes[0, 1].set_title('Total Uncertainty Distribution', fontsize=14, fontweight='bold')
     axes[0, 1].legend(frameon=True, fancybox=True, shadow=True)
     axes[0, 1].grid(True, alpha=0.3, linestyle='--')
     
@@ -1390,9 +1390,9 @@ def create_advanced_uncertainty_distribution_analysis(pred_probs, epistemic_unc,
                    color='green', label='Correct', density=True, edgecolor='black', linewidth=0.8)
     axes[1, 0].hist(confidences[~correct_predictions], bins=25, alpha=0.7, 
                    color='red', label='Incorrect', density=True, edgecolor='black', linewidth=0.8)
-    axes[1, 0].set_xlabel('Confidence', fontsize=12)
-    axes[1, 0].set_ylabel('Density', fontsize=12)
-    axes[1, 0].set_title('Confidence Distribution', fontsize=14)
+    axes[1, 0].set_xlabel('Confidence', fontsize=12, fontweight='bold')
+    axes[1, 0].set_ylabel('Density', fontsize=12, fontweight='bold')
+    axes[1, 0].set_title('Confidence Distribution', fontsize=14, fontweight='bold')
     axes[1, 0].legend(frameon=True, fancybox=True, shadow=True)
     axes[1, 0].grid(True, alpha=0.3, linestyle='--')
     
@@ -1401,9 +1401,9 @@ def create_advanced_uncertainty_distribution_analysis(pred_probs, epistemic_unc,
                       alpha=0.7, c='green', label='Correct', s=40, edgecolors='black', linewidth=0.5)
     axes[1, 1].scatter(total_unc[~correct_predictions], confidences[~correct_predictions], 
                       alpha=0.7, c='red', label='Incorrect', s=40, edgecolors='black', linewidth=0.5)
-    axes[1, 1].set_xlabel('Total Uncertainty', fontsize=12)
-    axes[1, 1].set_ylabel('Confidence', fontsize=12)
-    axes[1, 1].set_title('Uncertainty vs Confidence', fontsize=14)
+    axes[1, 1].set_xlabel('Total Uncertainty', fontsize=12, fontweight='bold')
+    axes[1, 1].set_ylabel('Confidence', fontsize=12, fontweight='bold')
+    axes[1, 1].set_title('Uncertainty vs Confidence', fontsize=14, fontweight='bold')
     axes[1, 1].legend(frameon=True, fancybox=True, shadow=True)
     axes[1, 1].grid(True, alpha=0.3, linestyle='--')
     
@@ -1429,7 +1429,7 @@ def create_full_evidential_plots(pred_probs, epistemic_unc, aleatoric_unc, total
     sns.set_palette("husl")
     
     fig, axes = plt.subplots(3, 3, figsize=(20, 18))
-    fig.suptitle('Evidential IENet - Comprehensive Uncertainty Analysis', fontsize=20)
+    fig.suptitle('Evidential IENet - Comprehensive Uncertainty Analysis', fontsize=20, fontweight='bold')
     
     # Plot 1: Epistemic vs Aleatoric Uncertainty
     axes[0, 0].scatter(epistemic_unc[correct_predictions], aleatoric_unc[correct_predictions], 
@@ -2023,7 +2023,7 @@ def create_spatial_uncertainty_maps(pred_probs, epistemic_unc, aleatoric_unc, to
         print(f"✅ Successfully created spatial maps with shape {shape}")
         
         # Create comprehensive SPATIAL uncertainty visualization (2×3 grid like CCNY Nov 2023)
-        fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+        fig, axes = plt.subplots(3, 2, figsize=(20, 12))
         fig.suptitle(f'Classification and Uncertainty Results - {dataset_name}', 
                     fontsize=18)
         
@@ -2035,11 +2035,11 @@ def create_spatial_uncertainty_maps(pred_probs, epistemic_unc, aleatoric_unc, to
         
         # 1. Predictions map - Non-defect probability (matching baseline style)
         im1 = axes[0, 0].imshow(non_defect_map, cmap='gray', interpolation='gaussian', aspect='equal')
-        axes[0, 0].set_title(f'Classification Map\n(Non-Defect Probability)', fontsize=12)
+        axes[0, 0].set_title(f'Classification Map\n(Defect Probability)', fontsize=12)
         axes[0, 0].set_xlabel('Spatial X Position')
         axes[0, 0].set_ylabel('Spatial Y Position')
         cbar1 = plt.colorbar(im1, ax=axes[0, 0], shrink=0.8)
-        cbar1.set_label('Non-Defect Probability')
+        cbar1.set_label('Defect Probability')
         
         # 2. Epistemic uncertainty map - model uncertainty at each location
         im2 = axes[0, 1].imshow(epistemic_map, cmap='coolwarm', interpolation='gaussian', aspect='equal')
@@ -2050,35 +2050,35 @@ def create_spatial_uncertainty_maps(pred_probs, epistemic_unc, aleatoric_unc, to
         cbar2.set_label('Epistemic Uncertainty')
         
         # 3. Aleatoric uncertainty map - data uncertainty at each location
-        im3 = axes[0, 2].imshow(aleatoric_map, cmap='Blues_r', interpolation='gaussian', aspect='equal')
-        axes[0, 2].set_title(f'Aleatoric Uncertainty\n(Data Uncertainty)', fontsize=12,)
-        axes[0, 2].set_xlabel('Spatial X Position')
-        axes[0, 2].set_ylabel('Spatial Y Position')
-        cbar3 = plt.colorbar(im3, ax=axes[0, 2], shrink=0.8)
+        im3 = axes[1, 0].imshow(aleatoric_map, cmap='Blues_r', interpolation='gaussian', aspect='equal')
+        axes[1, 0].set_title(f'Aleatoric Uncertainty\n(Data Uncertainty)', fontsize=12)
+        axes[1, 0].set_xlabel('Spatial X Position')
+        axes[1, 0].set_ylabel('Spatial Y Position')
+        cbar3 = plt.colorbar(im3, ax=axes[1, 0], shrink=0.8)
         cbar3.set_label('Aleatoric Uncertainty ')
         
         # 4. Total uncertainty map - combined uncertainty at each location
-        im4 = axes[1, 0].imshow(total_uncertainty_map, cmap='plasma', interpolation='gaussian', aspect='equal')
-        axes[1, 0].set_title(f'Total Uncertainty', fontsize=12)
-        axes[1, 0].set_xlabel('Spatial X Position')
-        axes[1, 0].set_ylabel('Spatial Y Position')
-        cbar4 = plt.colorbar(im4, ax=axes[1, 0], shrink=0.8)
+        im4 = axes[1, 1].imshow(total_uncertainty_map, cmap='plasma', interpolation='gaussian', aspect='equal')
+        axes[1, 1].set_title(f'Total Uncertainty', fontsize=12)
+        axes[1, 1].set_xlabel('Spatial X Position')
+        axes[1, 1].set_ylabel('Spatial Y Position')
+        cbar4 = plt.colorbar(im4, ax=axes[1, 1], shrink=0.8)
         cbar4.set_label('Total Uncertainty ')
         
         # 5. Confidence map - prediction confidence at each location
-        im5 = axes[1, 1].imshow(confidence_map, cmap='Spectral_r', interpolation='gaussian', aspect='equal')
-        axes[1, 1].set_title(f'Prediction Confidence\n(Higher=Better)', fontsize=12)
-        axes[1, 1].set_xlabel('Spatial X Position')
-        axes[1, 1].set_ylabel('Spatial Y Position')
-        cbar5 = plt.colorbar(im5, ax=axes[1, 1], shrink=0.8)
+        im5 = axes[2, 0].imshow(confidence_map, cmap='Spectral_r', interpolation='gaussian', aspect='equal')
+        axes[2, 0].set_title(f'Prediction Confidence\n(Higher=Better)', fontsize=12)
+        axes[2, 0].set_xlabel('Spatial X Position')
+        axes[2, 0].set_ylabel('Spatial Y Position')
+        cbar5 = plt.colorbar(im5, ax=axes[2, 0], shrink=0.8)
         cbar5.set_label('Confidence')
         
         # 6. Evidence strength map - evidence strength at each location
-        im6 = axes[1, 2].imshow(evidence_map, cmap='viridis', interpolation='gaussian', aspect='equal')
-        axes[1, 2].set_title(f'Evidence Strength\n(Alpha Sum)', fontsize=12)
-        axes[1, 2].set_xlabel('Spatial X Position')
-        axes[1, 2].set_ylabel('Spatial Y Position')
-        cbar6 = plt.colorbar(im6, ax=axes[1, 2], shrink=0.8)
+        im6 = axes[2, 1].imshow(evidence_map, cmap='viridis', interpolation='gaussian', aspect='equal')
+        axes[2, 1].set_title(f'Evidence Strength\n(Alpha Sum)', fontsize=12)
+        axes[2, 1].set_xlabel('Spatial X Position')
+        axes[2, 1].set_ylabel('Spatial Y Position')
+        cbar6 = plt.colorbar(im6, ax=axes[2, 1], shrink=0.8)
         cbar6.set_label('Evidence Strength')
         
         plt.tight_layout()
@@ -2117,9 +2117,9 @@ def create_individual_defect_maps(pred_probs, epistemic_unc, aleatoric_unc, tota
     defect_prob = pred_probs[:, 1]  # Probability of class 0 (non-defect)
 
     should_flip = False
-    # if any(x in dataset_name.upper() for x in ['MAY', 'JUNE', 'NOV']):  # DS2 and DS4
-    #     should_flip = True
-    #     print(f"  🔄 Will apply horizontal flip to {dataset_name}")
+    if any(x in dataset_name.upper() for x in ['MAY', 'JUNE', 'NOV']):  # DS2 and DS4
+        should_flip = True
+        print(f"  🔄 Will apply horizontal flip to {dataset_name}")
     
     # Use the same spatial shape logic as the main spatial maps
     dataset_shapes = {
@@ -2227,7 +2227,7 @@ def save_individual_defect_maps(classification_map, epistemic_map, aleatoric_map
     plt.imshow(classification_map, cmap='Spectral_r', interpolation='gaussian', aspect=1.0)
     plt.colorbar(label='Defect Probability', shrink=0.8)
     plt.title(f'Defect Map - {dataset_name}', 
-              fontsize=14)
+              fontsize=14, fontweight='bold')
     plt.xlabel('Spatial X Position')
     plt.ylabel('Spatial Y Position')
     plt.savefig(f'new_uncertainty_results/{experiment_name}/{model_name}_model_{safe_name}.png', dpi=300, bbox_inches='tight')
@@ -2343,13 +2343,13 @@ def create_ds1_comparison_figure(figure_name, targets, predictions, pred_probs, 
         high_unc_count = np.sum(high_unc_regions)
         total_samples = len(targets)
         
-        stats_text = f"""Statistics:
-• Accuracy: {accuracy:.1f}%
-• High Uncertainty Regions: {high_unc_count}/{total_samples} ({high_unc_count/total_samples*100:.1f}%)
-• Uncertainty: {unc_mean:.4f} ± {unc_std:.4f}
-• Threshold (μ+1.5σ): {high_unc_threshold:.4f}"""
+#         stats_text = f"""Statistics:
+# • Accuracy: {accuracy:.1f}%
+# • High Uncertainty Regions: {high_unc_count}/{total_samples} ({high_unc_count/total_samples*100:.1f}%)
+# • Uncertainty: {unc_mean:.4f} ± {unc_std:.4f}
+# • Threshold (μ+1.5σ): {high_unc_threshold:.4f}"""
         
-        fig.text(0.02, 0.02, stats_text, fontsize=10, bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray", alpha=0.8))
+#         fig.text(0.02, 0.02, stats_text, fontsize=10, bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray", alpha=0.8))
         
         plt.tight_layout()
         plt.subplots_adjust(top=0.88, bottom=0.15)
@@ -2450,7 +2450,7 @@ def save_evidential_full_baseline_maps(classification_map, epistemic_map, aleato
     # Classification map (non-defect probability)
     plt.figure(figsize=(10, 8))
     plt.imshow(classification_map, cmap='Spectral_r', interpolation='gaussian',)
-    plt.colorbar(label='Non-defect Probability')
+    plt.colorbar(label='Defect Probability')
     plt.title(f'{model_prefix.title()} - Classification ({dataset_name})')
     plt.axis('off')
     plt.savefig(f'new_uncertainty_results/exp3/{model_prefix}_model_{safe_name}.png', dpi=300, bbox_inches='tight')
@@ -2508,7 +2508,7 @@ def save_evidential_full_maps(classification_map, epistemic_map, aleatoric_map,
     # Classification map (non-defect probability)
     plt.figure(figsize=(10, 8))
     plt.imshow(classification_map, cmap='Spectral_r', interpolation='gaussian',)
-    plt.colorbar(label='Non-defect Probability')
+    plt.colorbar(label='Probability')
     plt.title(f'Evidential Full - Classification ({dataset_name})')
     plt.axis('off')
     plt.savefig(f'evidential_full_model_{dataset_name}.png', dpi=300, bbox_inches='tight')
